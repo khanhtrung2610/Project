@@ -8,6 +8,7 @@ import Devices from './pages/Devices';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import Transactions from './pages/Transactions';
 import Reports from './pages/Reports';
+import Suppliers from './pages/Suppliers';
 
 const App = () => {
     const isAuthenticated = !!localStorage.getItem('token');
@@ -27,6 +28,7 @@ const App = () => {
                         <Route path="devices" element={<Devices />} />
                         <Route path="transactions" element={<Transactions />} />
                         <Route path="reports" element={<Reports />} />
+                        <Route path="suppliers" element={<Suppliers />} />
                         <Route index element={<Navigate to="/dashboard" />} />
                     </Route>
                 </Routes>
