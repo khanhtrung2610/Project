@@ -8,7 +8,9 @@ import {
     CardContent,
     CardHeader,
     Tab,
-    Tabs
+    Tabs,
+    Button,
+    ButtonGroup
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -30,6 +32,12 @@ import {
 import { reportService } from '../services/reportService';
 import LoadingOverlay from '../components/common/LoadingOverlay';
 import vi from 'date-fns/locale/vi';
+import { 
+    CloudDownload as DownloadIcon,
+    PictureAsPdf as PdfIcon,
+    TableChart as ExcelIcon 
+} from '@mui/icons-material';
+import { exportToExcel, formatDate, formatCurrency } from '../utils/exportUtils';
 
 const Reports = () => {
     const [loading, setLoading] = useState(false);
@@ -63,6 +71,37 @@ const Reports = () => {
 
     const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
+    const handleExportExcel = (type: 'revenue' | 'movement' | 'stock') => {
+        switch (type) {
+            case 'revenue':
+                const revenueExport = revenueData.map(item => ({
+                    'Ngày': formatDate(new Date(item.date)),
+                    'Doanh thu': formatCurrency(item.revenue)
+                }));
+                exportToExcel(revenueExport, `bao-cao-doanh-thu-${formatDate(startDate)}-${formatDate(endDate)}`);
+                break;
+
+            case 'movement':
+                const movementExport = movementData.map(item => ({
+                    'Ngày': formatDate(new Date(item.date)),
+                    'Nhập kho': item.import,
+                    'Xuất kho': item.export,
+                    'Chênh lệch': item.import - item.export
+                }));
+                exportToExcel(movementExport, `bao-cao-nhap-xuat-${formatDate(startDate)}-${formatDate(endDate)}`);
+                break;
+
+            case 'stock':
+                const stockExport = stockData.map(item => ({
+                    'Danh mục': item.categoryName,
+                    'Số lượng': item.quantity,
+                    'Giá trị': formatCurrency(item.value)
+                }));
+                exportToExcel(stockExport, `bao-cao-ton-kho-${formatDate(new Date())}`);
+                break;
+        }
+    };
+
     return (
         <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={vi}>
             <Box>
@@ -91,7 +130,19 @@ const Reports = () => {
                     {/* Biểu đồ doanh thu */}
                     <Grid item xs={12}>
                         <Card>
-                            <CardHeader title="Doanh thu theo ngày" />
+                            <CardHeader 
+                                title="Doanh thu theo ngày"
+                                action={
+                                    <ButtonGroup>
+                                        <Button
+                                            startIcon={<ExcelIcon />}
+                                            onClick={() => handleExportExcel('revenue')}
+                                        >
+                                            Excel
+                                        </Button>
+                                    </ButtonGroup>
+                                }
+                            />
                             <CardContent>
                                 <LineChart
                                     width={800}
@@ -118,7 +169,19 @@ const Reports = () => {
                     {/* Biểu đồ nhập xuất */}
                     <Grid item xs={12} md={6}>
                         <Card>
-                            <CardHeader title="Biến động kho" />
+                            <CardHeader 
+                                title="Biến động kho"
+                                action={
+                                    <ButtonGroup>
+                                        <Button
+                                            startIcon={<ExcelIcon />}
+                                            onClick={() => handleExportExcel('movement')}
+                                        >
+                                            Excel
+                                        </Button>
+                                    </ButtonGroup>
+                                }
+                            />
                             <CardContent>
                                 <BarChart
                                     width={500}
@@ -141,7 +204,19 @@ const Reports = () => {
                     {/* Biểu đồ tồn kho */}
                     <Grid item xs={12} md={6}>
                         <Card>
-                            <CardHeader title="Tồn kho theo danh mục" />
+                            <CardHeader 
+                                title="Tồn kho theo danh mục"
+                                action={
+                                    <ButtonGroup>
+                                        <Button
+                                            startIcon={<ExcelIcon />}
+                                            onClick={() => handleExportExcel('stock')}
+                                        >
+                                            Excel
+                                        </Button>
+                                    </ButtonGroup>
+                                }
+                            />
                             <CardContent>
                                 <PieChart width={500} height={300}>
                                     <Pie
