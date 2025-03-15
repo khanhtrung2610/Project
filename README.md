@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Hệ thống Quản lý Kho
 
 Hệ thống quản lý kho cho công ty viễn thông, giúp quản lý hàng tồn kho, thiết bị và vật tư.
@@ -35,3 +36,6 @@ npm start
 ```
 
 ## Cấu trúc thư mục 
+=======
+# Project
+>>>>>>> 737511f075c09a9badcf039c0b87a3fe3a411a63
