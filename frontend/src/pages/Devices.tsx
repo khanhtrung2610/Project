@@ -33,6 +33,7 @@ import { deviceService } from '../services/deviceService';
 import { Device } from '../types/device';
 import { validateDevice } from '../utils/validation';
 import ImportExcel from '../components/common/ImportExcel';
+import { useDebounce, useCachedApi } from '../utils/hooks';
 
 const Devices = () => {
     const [devices, setDevices] = useState<Device[]>([]);
@@ -59,25 +60,18 @@ const Devices = () => {
 
     const [errors, setErrors] = useState({});
 
-    const fetchDevices = async () => {
-        setLoading(true);
-        try {
-            const data = await deviceService.getDevices();
-            setDevices(data);
-        } catch (error) {
-            setSnackbar({
-                open: true,
-                message: 'Không thể tải danh sách thiết bị',
-                severity: 'error'
-            });
-        } finally {
-            setLoading(false);
-        }
-    };
+    const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
-    useEffect(() => {
-        fetchDevices();
-    }, []);
+    const {
+        data: devicesData,
+        loading: devicesLoading,
+        error: devicesError,
+        refetch: refetchDevices
+    } = useCachedApi(
+        'devices',
+        deviceService.getDevices,
+        []
+    );
 
     const handleChangePage = (event: unknown, newPage: number) => {
         setPage(newPage);
@@ -134,7 +128,7 @@ const Devices = () => {
                 message: 'Xóa thiết bị thành công',
                 severity: 'success'
             });
-            fetchDevices(); // Tải lại danh sách
+            refetchDevices(); // Tải lại dữ liệu và cập nhật cache
         } catch (error: any) {
             setSnackbar({
                 open: true,
@@ -153,28 +147,16 @@ const Devices = () => {
         setLoading(true);
         try {
             if (selectedDevice) {
-                // Cập nhật thiết bị
                 await deviceService.updateDevice(selectedDevice.id, formData);
-                setSnackbar({
-                    open: true,
-                    message: 'Cập nhật thiết bị thành công',
-                    severity: 'success'
-                });
             } else {
-                // Thêm thiết bị mới
                 await deviceService.createDevice(formData);
-                setSnackbar({
-                    open: true,
-                    message: 'Thêm thiết bị thành công',
-                    severity: 'success'
-                });
             }
             handleCloseDialog();
-            fetchDevices(); // Tải lại danh sách
-        } catch (error: any) {
+            refetchDevices(); // Tải lại dữ liệu và cập nhật cache
+        } catch (error) {
             setSnackbar({
                 open: true,
-                message: error.response?.data?.message || 'Thao tác thất bại',
+                message: 'Thao tác thất bại',
                 severity: 'error'
             });
         } finally {
@@ -208,7 +190,7 @@ const Devices = () => {
                 message: 'Import dữ liệu thành công',
                 severity: 'success'
             });
-            fetchDevices();
+            refetchDevices();
         } catch (error) {
             setSnackbar({
                 open: true,
@@ -220,10 +202,10 @@ const Devices = () => {
         }
     };
 
-    const filteredDevices = devices.filter(device =>
-        device.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        device.serialNumber.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredDevices = devicesData?.filter(device =>
+        device.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        device.serialNumber.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+    ) || [];
 
     return (
         <Box>

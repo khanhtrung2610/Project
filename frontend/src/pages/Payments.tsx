@@ -32,6 +32,7 @@ import { Payment } from '../types/payment';
 import LoadingOverlay from '../components/common/LoadingOverlay';
 import { formatCurrency } from '../utils/exportUtils';
 import ImportExcel from '../components/common/ImportExcel';
+import { useCachedApi } from '../utils/hooks';
 
 const PAYMENT_METHODS = [
     { value: 'CASH', label: 'Tiền mặt' },
@@ -40,8 +41,16 @@ const PAYMENT_METHODS = [
 ];
 
 const Payments = () => {
-    const [payments, setPayments] = useState<Payment[]>([]);
-    const [loading, setLoading] = useState(false);
+    const {
+        data: payments,
+        loading,
+        error,
+        refetch: refetchPayments
+    } = useCachedApi(
+        'payments',
+        paymentService.getPayments,
+        []
+    );
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [openDialog, setOpenDialog] = useState(false);
@@ -52,22 +61,6 @@ const Payments = () => {
         note: ''
     });
     const [importDialog, setImportDialog] = useState(false);
-
-    const fetchPayments = async () => {
-        setLoading(true);
-        try {
-            const data = await paymentService.getPayments();
-            setPayments(data);
-        } catch (error) {
-            console.error('Error fetching payments:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchPayments();
-    }, []);
 
     const handleChangePage = (event: unknown, newPage: number) => {
         setPage(newPage);
@@ -90,7 +83,7 @@ const Payments = () => {
                 note: formData.note
             });
             setOpenDialog(false);
-            fetchPayments();
+            refetchPayments();
         } catch (error) {
             console.error('Error creating payment:', error);
         } finally {
@@ -102,7 +95,7 @@ const Payments = () => {
         setLoading(true);
         try {
             await paymentService.updatePaymentStatus(id, status);
-            fetchPayments();
+            refetchPayments();
         } catch (error) {
             console.error('Error updating payment status:', error);
         } finally {
@@ -142,7 +135,7 @@ const Payments = () => {
                 message: 'Import dữ liệu thành công',
                 severity: 'success'
             });
-            fetchPayments();
+            refetchPayments();
         } catch (error) {
             setSnackbar({
                 open: true,
