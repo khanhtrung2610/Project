@@ -1,6 +1,23 @@
 import api from './api';
 import { saveAs } from 'file-saver';
 
+export interface DailyRevenue {
+    date: string;
+    revenue: number;
+}
+
+export interface InventoryMovement {
+    date: string;
+    import: number;
+    export: number;
+}
+
+export interface StockSummary {
+    categoryName: string;
+    quantity: number;
+    value: number;
+}
+
 export const reportService = {
     async exportDeviceReport(filters: any) {
         try {
@@ -33,5 +50,24 @@ export const reportService = {
         } catch (error) {
             throw new Error('Lỗi khi lấy thống kê tồn kho');
         }
+    },
+
+    getDailyRevenue: async (startDate: Date, endDate: Date) => {
+        const response = await api.get<DailyRevenue[]>('/reports/revenue', {
+            params: { startDate, endDate }
+        });
+        return response.data;
+    },
+
+    getInventoryMovements: async (startDate: Date, endDate: Date) => {
+        const response = await api.get<InventoryMovement[]>('/reports/inventory-movements', {
+            params: { startDate, endDate }
+        });
+        return response.data;
+    },
+
+    getStockSummary: async () => {
+        const response = await api.get<StockSummary[]>('/reports/stock-summary');
+        return response.data;
     }
 }; 
