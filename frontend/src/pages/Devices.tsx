@@ -24,13 +24,15 @@ import {
     Add as AddIcon,
     Edit as EditIcon,
     Delete as DeleteIcon,
-    Search as SearchIcon
+    Search as SearchIcon,
+    Upload as UploadIcon
 } from '@mui/icons-material';
 import LoadingOverlay from '../components/common/LoadingOverlay';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import { deviceService } from '../services/deviceService';
 import { Device } from '../types/device';
 import { validateDevice } from '../utils/validation';
+import ImportExcel from '../components/common/ImportExcel';
 
 const Devices = () => {
     const [devices, setDevices] = useState<Device[]>([]);
@@ -45,6 +47,7 @@ const Devices = () => {
         open: false,
         deviceId: null as number | null
     });
+    const [importDialog, setImportDialog] = useState(false);
 
     const [formData, setFormData] = useState({
         name: '',
@@ -185,6 +188,38 @@ const Devices = () => {
         return isValid;
     };
 
+    const handleImport = async (data: any[]) => {
+        setLoading(true);
+        try {
+            // Chuẩn hóa dữ liệu
+            const formattedData = data.map(item => ({
+                name: item['Tên thiết bị'],
+                category: item['Danh mục'],
+                serialNumber: item['Số serial'],
+                status: item['Trạng thái'],
+                quantity: parseInt(item['Số lượng']) || 0
+            }));
+
+            // Giả lập API call - sau này sẽ thay bằng API thật
+            await Promise.all(formattedData.map(device => deviceService.createDevice(device)));
+            
+            setSnackbar({
+                open: true,
+                message: 'Import dữ liệu thành công',
+                severity: 'success'
+            });
+            fetchDevices();
+        } catch (error) {
+            setSnackbar({
+                open: true,
+                message: 'Import dữ liệu thất bại',
+                severity: 'error'
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const filteredDevices = devices.filter(device =>
         device.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         device.serialNumber.toLowerCase().includes(searchTerm.toLowerCase())
@@ -194,13 +229,23 @@ const Devices = () => {
         <Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
                 <Typography variant="h5">Quản lý thiết bị</Typography>
-                <Button
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    onClick={() => handleOpenDialog()}
-                >
-                    Thêm thiết bị
-                </Button>
+                <Box>
+                    <Button
+                        variant="outlined"
+                        startIcon={<UploadIcon />}
+                        onClick={() => setImportDialog(true)}
+                        sx={{ mr: 1 }}
+                    >
+                        Import
+                    </Button>
+                    <Button
+                        variant="contained"
+                        startIcon={<AddIcon />}
+                        onClick={() => handleOpenDialog()}
+                    >
+                        Thêm thiết bị
+                    </Button>
+                </Box>
             </Box>
 
             <Box sx={{ mb: 2 }}>
@@ -329,6 +374,20 @@ const Devices = () => {
                 message="Bạn có chắc chắn muốn xóa thiết bị này?"
                 onConfirm={confirmDelete}
                 onCancel={() => setConfirmDialog({ open: false, deviceId: null })}
+            />
+
+            <ImportExcel
+                open={importDialog}
+                onClose={() => setImportDialog(false)}
+                onImport={handleImport}
+                templateFields={[
+                    'Tên thiết bị',
+                    'Danh mục',
+                    'Số serial',
+                    'Trạng thái',
+                    'Số lượng'
+                ]}
+                title="Import danh sách thiết bị"
             />
         </Box>
     );

@@ -24,12 +24,14 @@ import {
 import {
     Add as AddIcon,
     Check as CheckIcon,
-    Close as CloseIcon
+    Close as CloseIcon,
+    Upload as UploadIcon
 } from '@mui/icons-material';
 import { paymentService } from '../services/paymentService';
 import { Payment } from '../types/payment';
 import LoadingOverlay from '../components/common/LoadingOverlay';
 import { formatCurrency } from '../utils/exportUtils';
+import ImportExcel from '../components/common/ImportExcel';
 
 const PAYMENT_METHODS = [
     { value: 'CASH', label: 'Tiền mặt' },
@@ -49,6 +51,7 @@ const Payments = () => {
         method: 'CASH',
         note: ''
     });
+    const [importDialog, setImportDialog] = useState(false);
 
     const fetchPayments = async () => {
         setLoading(true);
@@ -120,17 +123,58 @@ const Payments = () => {
         return PAYMENT_METHODS.find(m => m.value === method)?.label || method;
     };
 
+    const handleImport = async (data: any[]) => {
+        setLoading(true);
+        try {
+            // Chuẩn hóa dữ liệu
+            const formattedData = data.map(item => ({
+                transactionId: parseInt(item['Mã giao dịch']),
+                amount: parseFloat(item['Số tiền']),
+                method: item['Phương thức thanh toán'],
+                note: item['Ghi chú']
+            }));
+
+            // Giả lập API call - sau này sẽ thay bằng API thật
+            await Promise.all(formattedData.map(payment => paymentService.createPayment(payment)));
+            
+            setSnackbar({
+                open: true,
+                message: 'Import dữ liệu thành công',
+                severity: 'success'
+            });
+            fetchPayments();
+        } catch (error) {
+            setSnackbar({
+                open: true,
+                message: 'Import dữ liệu thất bại',
+                severity: 'error'
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
                 <Typography variant="h5">Quản lý thanh toán</Typography>
-                <Button
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    onClick={() => setOpenDialog(true)}
-                >
-                    Thêm thanh toán
-                </Button>
+                <Box>
+                    <Button
+                        variant="outlined"
+                        startIcon={<UploadIcon />}
+                        onClick={() => setImportDialog(true)}
+                        sx={{ mr: 1 }}
+                    >
+                        Import
+                    </Button>
+                    <Button
+                        variant="contained"
+                        startIcon={<AddIcon />}
+                        onClick={() => setOpenDialog(true)}
+                    >
+                        Thêm thanh toán
+                    </Button>
+                </Box>
             </Box>
 
             <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -281,6 +325,19 @@ const Payments = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
+
+            <ImportExcel
+                open={importDialog}
+                onClose={() => setImportDialog(false)}
+                onImport={handleImport}
+                templateFields={[
+                    'Mã giao dịch',
+                    'Số tiền',
+                    'Phương thức thanh toán',
+                    'Ghi chú'
+                ]}
+                title="Import danh sách thanh toán"
+            />
 
             <LoadingOverlay open={loading} />
         </Box>
