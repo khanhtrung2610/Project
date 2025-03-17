@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ thống quản lý kho</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <nav class="sidebar">
+            <h2>Quản lý kho</h2>
+            <ul>
+                <li><a href="#" onclick="showSection('warehouse')">Quản lý hoạt động kho</a></li>
+                <li><a href="#" onclick="showSection('reports')">Báo cáo & Thống kê</a></li>
+                <li><a href="#" onclick="showSection('payments')">Quản lý thanh toán</a></li>
+                <li><a href="#" onclick="showSection('devices')">Danh mục thiết bị</a></li>
+            </ul>
+        </nav>
+        <main class="content">
+            <h1>Dashboard</h1>
+            <section id="warehouse" class="section">
+                <h2>Quản lý hoạt động kho</h2>
+                <p>Kiểm tra nhập xuất theo thời gian thực, lịch sử giao dịch, danh sách nhà cung cấp.</p>
+            </section>
+            <section id="reports" class="section" style="display:none;">
+                <h2>Báo cáo & Thống kê</h2>
+                <p>Theo dõi thiết bị, báo cáo doanh thu, phản hồi khách hàng, tổng hợp hàng tồn kho.</p>
+            </section>
+            <section id="payments" class="section" style="display:none;">
+                <h2>Quản lý thanh toán</h2>
+                <p>Quản lý các khoản thanh toán và giao dịch tài chính.</p>
+            </section>
+            <section id="devices" class="section" style="display:none;">
+                <h2>Danh mục thiết bị</h2>
+                <p>Thêm, sửa, xóa thông tin thiết bị.</p>
+            </section>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
