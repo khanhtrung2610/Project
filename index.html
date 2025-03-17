@@ -9,31 +9,58 @@
 <body>
     <div class="container">
         <nav class="sidebar">
-            <h2>Quản lý kho</h2>
+            <h2>📦 Quản lý kho</h2>
             <ul>
-                <li><a href="#" onclick="showSection('warehouse')">Quản lý hoạt động kho</a></li>
-                <li><a href="#" onclick="showSection('reports')">Báo cáo & Thống kê</a></li>
-                <li><a href="#" onclick="showSection('payments')">Quản lý thanh toán</a></li>
-                <li><a href="#" onclick="showSection('devices')">Danh mục thiết bị</a></li>
+                <li><a href="#" onclick="showSection('dashboard')">📊 Dashboard</a></li>
+                <li><a href="#" onclick="showSection('warehouse')">📦 Hoạt động kho</a></li>
+                <li><a href="#" onclick="showSection('reports')">📈 Báo cáo & Thống kê</a></li>
+                <li><a href="#" onclick="showSection('payments')">💰 Thanh toán</a></li>
+                <li><a href="#" onclick="showSection('devices')">🔧 Danh mục thiết bị</a></li>
             </ul>
         </nav>
         <main class="content">
-            <h1>Dashboard</h1>
+            <section id="dashboard" class="section active">
+                <h1>📊 Dashboard</h1>
+                <div class="stats">
+                    <div class="card">📦 Tổng thiết bị: <span id="total-devices">100</span></div>
+                    <div class="card">📌 Hàng tồn kho: <span id="inventory">50</span></div>
+                    <div class="card">🔄 Giao dịch hôm nay: <span id="transactions">20</span></div>
+                </div>
+            </section>
             <section id="warehouse" class="section">
-                <h2>Quản lý hoạt động kho</h2>
+                <h2>📦 Quản lý hoạt động kho</h2>
                 <p>Kiểm tra nhập xuất theo thời gian thực, lịch sử giao dịch, danh sách nhà cung cấp.</p>
             </section>
-            <section id="reports" class="section" style="display:none;">
-                <h2>Báo cáo & Thống kê</h2>
+            <section id="reports" class="section">
+                <h2>📈 Báo cáo & Thống kê</h2>
                 <p>Theo dõi thiết bị, báo cáo doanh thu, phản hồi khách hàng, tổng hợp hàng tồn kho.</p>
             </section>
-            <section id="payments" class="section" style="display:none;">
-                <h2>Quản lý thanh toán</h2>
+            <section id="payments" class="section">
+                <h2>💰 Quản lý thanh toán</h2>
                 <p>Quản lý các khoản thanh toán và giao dịch tài chính.</p>
             </section>
-            <section id="devices" class="section" style="display:none;">
-                <h2>Danh mục thiết bị</h2>
-                <p>Thêm, sửa, xóa thông tin thiết bị.</p>
+            <section id="devices" class="section">
+                <h2>🔧 Danh mục thiết bị</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Tên Thiết Bị</th>
+                            <th>Loại</th>
+                            <th>Số Lượng</th>
+                            <th>Hành Động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>001</td>
+                            <td>Router Cisco</td>
+                            <td>Networking</td>
+                            <td>10</td>
+                            <td><button>✏️ Sửa</button> <button>🗑️ Xóa</button></td>
+                        </tr>
+                    </tbody>
+                </table>
             </section>
         </main>
     </div>
