@@ -7,10 +7,10 @@
 
 html, body, #root {
   height: 100%;
-  overflow: hidden;
   font-family: Arial, sans-serif;
   background-color: #121212;
   color: #ffffff;
+  overflow: hidden;
 }
 
 .app-container {
@@ -23,12 +23,31 @@ html, body, #root {
   width: 250px;
   background-color: #1f1f1f;
   padding: 20px;
-  height: 100vh; /* Đảm bảo sidebar full chiều cao */
+  height: 100vh; /* Giữ sidebar cố định */
+  position: fixed;
+  top: 0;
+  left: 0;
+  overflow-y: auto;
 }
 
-/* Nội dung chính */
+/* Căn chỉnh lại nội dung */
 .content {
   flex-grow: 1;
   padding: 20px;
-  overflow-y: auto; /* Cho phép cuộn khi nội dung dài */
+  margin-left: 250px; /* Đẩy nội dung sang phải để không bị đè lên */
+  overflow-y: auto;
+}
+
+/* Tùy chỉnh menu sidebar */
+.sidebar a {
+  display: block;
+  color: #ddd; /* Màu chữ dễ nhìn hơn */
+  text-decoration: none;
+  padding: 10px;
+  border-radius: 5px;
+  transition: background 0.3s;
+}
+
+.sidebar a:hover {
+  background-color: #333;
 }
