@@ -1,0 +1,34 @@
+/* Reset CSS */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+  font-family: Arial, sans-serif;
+  background-color: #121212;
+  color: #ffffff;
+}
+
+.app-container {
+  display: flex;
+  height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 250px;
+  background-color: #1f1f1f;
+  padding: 20px;
+  height: 100vh; /* Đảm bảo sidebar full chiều cao */
+}
+
+/* Nội dung chính */
+.content {
+  flex-grow: 1;
+  padding: 20px;
+  overflow-y: auto; /* Cho phép cuộn khi nội dung dài */
+}
