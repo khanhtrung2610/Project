@@ -8,19 +8,19 @@ const Sidebar = () => {
       <nav>
         <ul>
           <li className="mb-2">
-            <Link to="/" className="block p-2 bg-gray-800 hover:bg-gray-700 rounded">📊 Dashboard</Link>
+            <Link to="#/" className="block p-2 bg-gray-800 hover:bg-gray-700 rounded">📊 Dashboard</Link>
           </li>
           <li className="mb-2">
-            <Link to="/hoat-dong" className="block p-2 bg-gray-800 hover:bg-gray-700 rounded">📦 Hoạt động kho</Link>
+            <Link to="#/hoat-dong" className="block p-2 bg-gray-800 hover:bg-gray-700 rounded">📦 Hoạt động kho</Link>
           </li>
           <li className="mb-2">
-            <Link to="/thong-ke" className="block p-2 bg-gray-800 hover:bg-gray-700 rounded">📈 Báo cáo & Thống kê</Link>
+            <Link to="#/thong-ke" className="block p-2 bg-gray-800 hover:bg-gray-700 rounded">📈 Báo cáo & Thống kê</Link>
           </li>
           <li className="mb-2">
-            <Link to="/thanh-toan" className="block p-2 bg-gray-800 hover:bg-gray-700 rounded">💰 Thanh toán</Link>
+            <Link to="#/thanh-toan" className="block p-2 bg-gray-800 hover:bg-gray-700 rounded">💰 Thanh toán</Link>
           </li>
           <li className="mb-2">
-            <Link to="/danh-muc" className="block p-2 bg-gray-800 hover:bg-gray-700 rounded">🔧 Danh mục thiết bị</Link>
+            <Link to="#/danh-muc" className="block p-2 bg-gray-800 hover:bg-gray-700 rounded">🔧 Danh mục thiết bị</Link>
           </li>
         </ul>
       </nav>

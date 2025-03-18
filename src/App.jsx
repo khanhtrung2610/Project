@@ -5,7 +5,7 @@ import Inventory from "./pages/Inventory";
 import Reports from "./pages/Reports";
 import Payments from "./pages/Payments";
 import Categories from "./pages/Categories";
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { HashRouter as Router, Route, Routes } from "react-router-dom";
 import "./index.css";
 
 function App() {
