@@ -7,12 +7,9 @@ import "./index.css";
 function App() {
   return (
     <Router>
-      <div className="app-container flex h-screen">
-        {/* Sidebar chiếm cố định một phần */}
+      <div className="app-container flex">
         <Sidebar />
-
-        {/* Nội dung chính, chiếm toàn bộ phần còn lại */}
-        <div className="content flex-1 p-4 overflow-auto">
+        <div className="content flex-1 p-4">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             {/* Các route khác sẽ thêm ở đây */}
