@@ -41,7 +41,14 @@
             </section>
             <section id="devices" class="section">
                 <h2>🔧 Danh mục thiết bị</h2>
-                <table>
+                <table class="device-table">
+                    <colgroup>
+                        <col style="width: 10%;">
+                        <col style="width: 30%;">
+                        <col style="width: 20%;">
+                        <col style="width: 15%;">
+                        <col style="width: 25%;">
+                    </colgroup>
                     <thead>
                         <tr>
                             <th>ID</th>
@@ -57,7 +64,30 @@
                             <td>Router Cisco</td>
                             <td>Networking</td>
                             <td>10</td>
-                            <td><button>✏️ Sửa</button> <button>🗑️ Xóa</button></td>
+                            <td>
+                                <button class="edit-btn">✏️ Sửa</button>
+                                <button class="delete-btn">🗑️ Xóa</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>002</td>
+                            <td>Switch TP-Link</td>
+                            <td>Networking</td>
+                            <td>15</td>
+                            <td>
+                                <button class="edit-btn">✏️ Sửa</button>
+                                <button class="delete-btn">🗑️ Xóa</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>003</td>
+                            <td>Modem VNPT</td>
+                            <td>Internet</td>
+                            <td>8</td>
+                            <td>
+                                <button class="edit-btn">✏️ Sửa</button>
+                                <button class="delete-btn">🗑️ Xóa</button>
+                            </td>
                         </tr>
                     </tbody>
                 </table>

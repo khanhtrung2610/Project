@@ -115,3 +115,57 @@ button:last-child {
     background: red;
     color: white;
 }
+.device-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    background: #1e1e1e;
+    color: white;
+}
+
+.device-table th, .device-table td {
+    border: 1px solid #333;
+    padding: 10px;
+    text-align: center;
+}
+
+.device-table th {
+    background: #333;
+    color: cyan;
+    font-weight: bold;
+}
+
+.device-table tbody tr:nth-child(even) {
+    background: #292929;
+}
+
+.device-table tbody tr:hover {
+    background: #444;
+}
+
+.edit-btn, .delete-btn {
+    border: none;
+    padding: 5px 10px;
+    margin: 2px;
+    cursor: pointer;
+}
+
+.edit-btn {
+    background: #007bff;
+    color: white;
+    border-radius: 5px;
+}
+
+.delete-btn {
+    background: #dc3545;
+    color: white;
+    border-radius: 5px;
+}
+
+.edit-btn:hover {
+    background: #0056b3;
+}
+
+.delete-btn:hover {
+    background: #a71d2a;
+}
