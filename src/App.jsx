@@ -1,30 +1,34 @@
 import React from "react";
+import ReactDOM from "react-dom/client";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
-import Inventory from "./pages/Inventory";
-import Reports from "./pages/Reports";
-import Payments from "./pages/Payments";
-import Categories from "./pages/Categories";
-import { HashRouter as Router, Route, Routes } from "react-router-dom";
+import HoatDong from "./pages/HoatDong";
+import ThongKe from "./pages/ThongKe";
+import ThanhToan from "./pages/ThanhToan";
+import DanhMuc from "./pages/DanhMuc";
 import "./index.css";
 
-function App() {
+const App = () => {
   return (
-    <Router>
-      <div className="app-container flex">
+    <Router basename="/Project">
+      <div className="flex h-screen">
         <Sidebar />
-        <div className="content flex-1 p-4">
+        <div className="flex-1 p-4 bg-gray-800 text-white">
           <Routes>
             <Route path="/" element={<Dashboard />} />
-            <Route path="/hoat-dong" element={<Inventory />} />
-            <Route path="/thong-ke" element={<Reports />} />
-            <Route path="/thanh-toan" element={<Payments />} />
-            <Route path="/danh-muc" element={<Categories />} />
+            <Route path="/hoat-dong" element={<HoatDong />} />
+            <Route path="/thong-ke" element={<ThongKe />} />
+            <Route path="/thanh-toan" element={<ThanhToan />} />
+            <Route path="/danh-muc" element={<DanhMuc />} />
           </Routes>
         </div>
       </div>
     </Router>
   );
-}
+};
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
 
 export default App;
