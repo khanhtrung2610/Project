@@ -31,6 +31,16 @@ body {
     cursor: pointer;
 }
 
+/* Ẩn tất cả các section trừ section đầu tiên */
+.section {
+    display: none;
+}
+
+/* Hiển thị section được chọn */
+.section.active {
+    display: block;
+}
+
 .main-content {
     flex: 1;
     padding: 20px;
