@@ -1,21 +1,25 @@
 import React from "react";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
+import Inventory from "./pages/Inventory";
+import Reports from "./pages/Reports";
+import Payments from "./pages/Payments";
+import Categories from "./pages/Categories";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import "./index.css";
 
 function App() {
   return (
     <Router>
-      <div className="app-container flex h-screen">
-        {/* Sidebar chiếm cố định một phần */}
+      <div className="app-container flex">
         <Sidebar />
-
-        {/* Nội dung chính, chiếm toàn bộ phần còn lại */}
-        <div className="content flex-1 p-4 overflow-auto">
+        <div className="content flex-1 p-4">
           <Routes>
             <Route path="/" element={<Dashboard />} />
-            {/* Các route khác sẽ thêm ở đây */}
+            <Route path="/hoat-dong" element={<Inventory />} />
+            <Route path="/thong-ke" element={<Reports />} />
+            <Route path="/thanh-toan" element={<Payments />} />
+            <Route path="/danh-muc" element={<Categories />} />
           </Routes>
         </div>
       </div>
