@@ -7,21 +7,21 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
+    <div class="app-container">
         <nav class="sidebar">
             <h2>📦 Quản lý kho</h2>
             <ul>
-                <li><a href="#" onclick="showSection('dashboard')">📊 Dashboard</a></li>
-                <li><a href="#" onclick="showSection('warehouse')">📦 Hoạt động kho</a></li>
-                <li><a href="#" onclick="showSection('reports')">📈 Báo cáo & Thống kê</a></li>
-                <li><a href="#" onclick="showSection('payments')">💰 Thanh toán</a></li>
-                <li><a href="#" onclick="showSection('devices')">🔧 Danh mục thiết bị</a></li>
+                <li onclick="showSection('dashboard')">📊 Dashboard</li>
+                <li onclick="showSection('warehouse')">📦 Hoạt động kho</li>
+                <li onclick="showSection('reports')">📈 Báo cáo & Thống kê</li>
+                <li onclick="showSection('payments')">💰 Thanh toán</li>
+                <li onclick="showSection('devices')">🔧 Danh mục thiết bị</li>
             </ul>
         </nav>
-        <main class="content">
+        <main class="main-content">
             <section id="dashboard" class="section active">
                 <h1>📊 Dashboard</h1>
-                <div class="stats">
+                <div class="dashboard-cards">
                     <div class="card">📦 Tổng thiết bị: <span id="total-devices">100</span></div>
                     <div class="card">📌 Hàng tồn kho: <span id="inventory">50</span></div>
                     <div class="card">🔄 Giao dịch hôm nay: <span id="transactions">20</span></div>
@@ -64,9 +64,6 @@
             </section>
         </main>
     </div>
-    <script src="./script.js" defer></script>
-
-
-
+    <script src="script.js" defer></script>
 </body>
 </html>
