@@ -12,11 +12,5 @@ function showSection(sectionId) {
     document.getElementById(sectionId).classList.add('active');
 }
 
-// Khi tải trang, đảm bảo phần "Dashboard" hiển thị mặc định
-document.addEventListener("DOMContentLoaded", () => {
-    showSection('dashboard');
-});
-
-
 // Gán vào window để có thể gọi từ HTML
 window.showSection = showSection;
