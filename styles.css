@@ -115,6 +115,7 @@ button:last-child {
     background: red;
     color: white;
 }
+
 .device-table {
     width: 100%;
     border-collapse: collapse;
@@ -168,4 +169,21 @@ button:last-child {
 
 .delete-btn:hover {
     background: #a71d2a;
+}
+
+/* Nút Thêm Thiết Bị */
+#add-device-btn {
+    background: #28a745;
+    color: white;
+    padding: 10px 15px;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    display: block;
+    width: fit-content;
+}
+
+#add-device-btn:hover {
+    background: #218838;
 }
