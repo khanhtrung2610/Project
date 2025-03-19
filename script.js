@@ -1,5 +1,6 @@
 document.addEventListener("DOMContentLoaded", function () {
     showSection('dashboard'); // Mặc định hiển thị Dashboard
+    setupMenu();
 });
 
 function showSection(sectionId) {
@@ -9,6 +10,15 @@ function showSection(sectionId) {
     document.getElementById(sectionId).classList.add('active');
 }
 window.showSection = showSection;
+
+function setupMenu() {
+    document.querySelectorAll('.menu-item').forEach(item => {
+        item.addEventListener('click', function () {
+            let targetSection = this.getAttribute('data-target');
+            showSection(targetSection);
+        });
+    });
+}
 
 // Thêm chức năng sửa thiết bị
 function editDevice(event) {
