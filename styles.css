@@ -307,3 +307,15 @@ button:last-child {
 .inventory-table tbody tr:hover {
     background: #444;
 }
+.dashboard-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.dashboard-section, .inventory-section {
+    flex: 1;
+    background: #222;
+    padding: 20px;
+    border-radius: 10px;
+}

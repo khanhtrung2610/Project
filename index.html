@@ -21,20 +21,22 @@
         <main class="main-content">
             <section id="dashboard" class="section active">
                 <h1>📊 Dashboard</h1>
-                <div class="dashboard-cards">
-                    <div class="card">📦 Tổng thiết bị: <span id="total-devices">100</span></div>
-                    <div class="card">📌 Hàng tồn kho: <span id="inventory">50</span></div>
-                    <div class="card">🔄 Giao dịch hôm nay: <span id="transactions">20</span></div>
-                </div>
-                <div class="inventory-status">
-                    <h2>📋 Hàng Hóa</h2>
-                    <ul>
-                        <li onclick="showInventory('all-items')">Tất cả (55)</li>
-                        <li onclick="showInventory('long-storage')">Tồn kho lâu (2)</li>
-                        <li onclick="showInventory('out-of-stock')">Hết hàng (38)</li>
-                        <li onclick="showInventory('low-stock')">Sắp hết hàng (0)</li>
-                        <li onclick="showInventory('damaged-stock')">Hàng bị lỗi (13)</li>
-                    </ul>
+                <div class="dashboard-container">
+                    <div class="dashboard-section">
+                        <div class="card">📦 Tổng thiết bị: <span id="total-devices">100</span></div>
+                        <div class="card">📌 Hàng tồn kho: <span id="inventory">50</span></div>
+                        <div class="card">🔄 Giao dịch hôm nay: <span id="transactions">20</span></div>
+                    </div>
+                    <div class="inventory-section">
+                        <h2>📋 Hàng Hóa</h2>
+                        <ul>
+                            <li onclick="showInventory('all-items')">Tất cả (55)</li>
+                            <li onclick="showInventory('long-storage')">Tồn kho lâu (2)</li>
+                            <li onclick="showInventory('out-of-stock')">Hết hàng (38)</li>
+                            <li onclick="showInventory('low-stock')">Sắp hết hàng (0)</li>
+                            <li onclick="showInventory('damaged-stock')">Hàng bị lỗi (13)</li>
+                        </ul>
+                    </div>
                 </div>
                 <div id="inventory-content" class="inventory-content">
                     <table class="inventory-table">
@@ -50,45 +52,6 @@
                         </tbody>
                     </table>
                 </div>
-            </section>
-            <section id="warehouse" class="section">
-                <h2>📦 Quản lý hoạt động kho</h2>
-                <p>Kiểm tra nhập xuất theo thời gian thực, lịch sử giao dịch, danh sách nhà cung cấp.</p>
-            </section>
-            <section id="reports" class="section">
-                <h2>📈 Báo cáo & Thống kê</h2>
-                <p>Theo dõi thiết bị, báo cáo doanh thu, phản hồi khách hàng, tổng hợp hàng tồn kho.</p>
-            </section>
-            <section id="payments" class="section">
-                <h2>💰 Quản lý thanh toán</h2>
-                <p>Quản lý các khoản thanh toán và giao dịch tài chính.</p>
-            </section>
-            <section id="devices" class="section">
-                <h2>🔧 Danh mục thiết bị</h2>
-                <button id="add-device-btn">➕ Thêm Thiết Bị</button>
-                <table class="device-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Tên Thiết Bị</th>
-                            <th>Loại</th>
-                            <th>Số Lượng</th>
-                            <th>Hành Động</th>
-                        </tr>
-                    </thead>
-                    <tbody id="device-table-body">
-                        <tr>
-                            <td>001</td>
-                            <td>Router Cisco</td>
-                            <td>Networking</td>
-                            <td>10</td>
-                            <td>
-                                <button class="edit-btn">✏️ Sửa</button>
-                                <button class="delete-btn">🗑️ Xóa</button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
             </section>
         </main>
     </div>
