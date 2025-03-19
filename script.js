@@ -71,3 +71,14 @@ document.addEventListener("click", function (event) {
 
 // Gán sự kiện cho nút thêm thiết bị
 document.getElementById("add-device-btn").addEventListener("click", addDevice);
+
+// Cập nhật số liệu hàng hóa trong Dashboard
+function updateInventoryStats() {
+    document.getElementById("total-items").textContent = 55;
+    document.getElementById("long-stock").textContent = 2;
+    document.getElementById("out-of-stock").textContent = 38;
+    document.getElementById("low-stock").textContent = 0;
+    document.getElementById("damaged-items").textContent = 13;
+}
+
+document.addEventListener("DOMContentLoaded", updateInventoryStats);
