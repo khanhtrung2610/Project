@@ -6,12 +6,9 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 function showSection(sectionId) {
-    // Ẩn tất cả section
     document.querySelectorAll('.section').forEach(section => {
         section.style.display = 'none';
     });
-
-    // Hiển thị section được chọn
     let activeSection = document.getElementById(sectionId);
     if (activeSection) {
         activeSection.style.display = 'block';
@@ -30,39 +27,33 @@ function setupMenu() {
 }
 
 function setupEventListeners() {
-    let addDeviceBtn = document.getElementById("add-device-btn");
-    if (addDeviceBtn) {
-        addDeviceBtn.addEventListener("click", addDevice);
-    }
-
+    document.getElementById("add-device-btn")?.addEventListener("click", addDevice);
     document.addEventListener("click", function (event) {
         if (event.target.classList.contains("edit-btn")) {
-            editDevice(event);
+            editDevice(event.target.closest("tr"));
         } else if (event.target.classList.contains("delete-btn")) {
-            deleteDevice(event);
+            deleteDevice(event.target.closest("tr"));
         }
     });
 }
 
-function editDevice(event) {
-    let row = event.target.closest("tr");
+function editDevice(row) {
     if (!row) return;
-
     let cells = row.getElementsByTagName("td");
     if (cells.length < 4) return;
-
+    
     let newName = prompt("Nhập tên thiết bị mới:", cells[1].textContent);
     let newType = prompt("Nhập loại thiết bị mới:", cells[2].textContent);
     let newQuantity = prompt("Nhập số lượng mới:", cells[3].textContent);
-
+    
     if (newName) cells[1].textContent = newName;
     if (newType) cells[2].textContent = newType;
     if (newQuantity) cells[3].textContent = newQuantity;
 }
 
-function deleteDevice(event) {
-    if (confirm("Bạn có chắc chắn muốn xóa thiết bị này không?")) {
-        event.target.closest("tr").remove();
+function deleteDevice(row) {
+    if (row && confirm("Bạn có chắc chắn muốn xóa thiết bị này không?")) {
+        row.remove();
     }
 }
 
@@ -71,11 +62,11 @@ function addDevice() {
     let name = prompt("Nhập tên thiết bị:");
     let type = prompt("Nhập loại thiết bị:");
     let quantity = prompt("Nhập số lượng:");
-
+    
     if (id && name && type && quantity) {
         let tableBody = document.getElementById("device-table-body");
         if (!tableBody) return;
-
+        
         let newRow = document.createElement("tr");
         newRow.innerHTML = `
             <td>${id}</td>
@@ -101,13 +92,8 @@ function updateInventoryStats() {
         lowStock: 0,
         damagedItems: 13
     };
-
-    for (let key in inventoryStats) {
-        let element = document.getElementById(key);
-        if (element) {
-            element.textContent = inventoryStats[key];
-        } else {
-            console.warn(`Phần tử với id="${key}" không tồn tại!`);
-        }
-    }
+    
+    Object.keys(inventoryStats).forEach(key => {
+        document.getElementById(key)?.textContent = inventoryStats[key];
+    });
 }
