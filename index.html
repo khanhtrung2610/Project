@@ -3,131 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ thống quản lý kho</title>
+    <title>Quản lý Kho</title>
     <link rel="stylesheet" href="styles.css">
-    <style>
-        .dashboard-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
-        .inventory-status {
-            display: flex;
-            gap: 10px;
-        }
-        .inventory-status button {
-            background-color: #333;
-            color: cyan;
-            border: none;
-            padding: 8px 12px;
-            cursor: pointer;
-            border-radius: 5px;
-        }
-        .inventory-status button:hover {
-            background-color: #555;
-        }
-        .section {
-            display: none;
-        }
-        .section.active {
-            display: block;
-        }
-    </style>
 </head>
 <body>
-    <div class="app-container">
-        <nav class="sidebar">
-            <h2>📦 Quản lý kho</h2>
-            <ul>
-                <li><a href="#" data-target="dashboard">📊 Dashboard</a></li>
-                <li><a href="#" data-target="warehouse">📦 Hoạt động kho</a></li>
-                <li><a href="#" data-target="reports">📈 Báo cáo & Thống kê</a></li>
-                <li><a href="#" data-target="payments">💰 Thanh toán</a></li>
-                <li><a href="#" data-target="devices">🔧 Danh mục thiết bị</a></li>
-            </ul>
-        </nav>
-        <main class="main-content">
-            <section id="dashboard" class="section active">
-                <div class="dashboard-container">
-                    <div>
-                        <h1>📊 Dashboard</h1>
-                        <div class="dashboard-cards">
-                            <div class="card">📦 Tổng thiết bị: <span id="totalItems">100</span></div>
-                            <div class="card">📌 Hàng tồn kho: <span id="inventory">50</span></div>
-                            <div class="card">🔄 Giao dịch hôm nay: <span id="transactions">20</span></div>
-                        </div>
-                    </div>
-                    <div>
-                        <h2>📋 Hàng Hóa</h2>
-                        <div class="inventory-status">
-                            <button onclick="showInventory('all-items')">Tất cả (55)</button>
-                            <button onclick="showInventory('long-storage')">Tồn kho lâu (2)</button>
-                            <button onclick="showInventory('out-of-stock')">Hết hàng (38)</button>
-                            <button onclick="showInventory('low-stock')">Sắp hết hàng (0)</button>
-                            <button onclick="showInventory('damaged-stock')">Hàng bị lỗi (13)</button>
-                        </div>
-                    </div>
-                </div>
-                <div id="inventory-content" class="inventory-content">
-                    <table class="inventory-table">
-                        <thead>
-                            <tr>
-                                <th>Mã hàng</th>
-                                <th>Hàng hóa</th>
-                                <th>Số lượng</th>
-                            </tr>
-                        </thead>
-                        <tbody id="inventory-table-body">
-                            <!-- Nội dung sẽ được cập nhật bằng JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-        </main>
+
+    <!-- Sidebar -->
+    <nav>
+        <ul>
+            <li><a href="#" data-target="dashboard">📊 Dashboard</a></li>
+            <li><a href="#" data-target="devices">📦 Quản lý Thiết bị</a></li>
+        </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Dashboard -->
+        <section id="dashboard" class="section">
+            <h2>📊 Thống kê kho</h2>
+            <p><strong>Tổng số thiết bị:</strong> <span id="totalItems">0</span></p>
+            <p><strong>Số lượng hàng tồn kho:</strong> <span id="inventory">0</span></p>
+            <p><strong>Số giao dịch:</strong> <span id="transactions">0</span></p>
+        </section>
+
+        <!-- Quản lý thiết bị -->
+        <section id="devices" class="section" style="display: none;">
+            <h2>📦 Danh sách Thiết bị</h2>
+            <button id="add-device-btn">➕ Thêm Thiết bị</button>
+            <table border="1">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Tên</th>
+                        <th>Loại</th>
+                        <th>Số lượng</th>
+                        <th>Trạng thái</th>
+                        <th>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody id="device-table-body">
+                    <!-- Dữ liệu từ Supabase sẽ được thêm vào đây -->
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <!-- Form nhập liệu (Modal) -->
+    <div id="device-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3>📋 Nhập thông tin thiết bị</h3>
+            <form id="device-form">
+                <input type="hidden" id="device-id">
+                <label>Tên thiết bị:</label>
+                <input type="text" id="device-name" required>
+                <label>Loại thiết bị:</label>
+                <input type="text" id="device-type" required>
+                <label>Số lượng:</label>
+                <input type="number" id="device-quantity" required>
+                <label>Trạng thái:</label>
+                <select id="device-status">
+                    <option value="available">Còn hàng</option>
+                    <option value="out_of_stock">Hết hàng</option>
+                    <option value="damaged">Hỏng</option>
+                </select>
+                <button type="button" id="save-device-btn">💾 Lưu</button>
+                <button type="button" onclick="document.getElementById('device-modal').style.display='none'">❌ Hủy</button>
+            </form>
+        </div>
     </div>
-    <script>
-        // Dữ liệu giả lập danh sách hàng hóa trong kho
-        const inventoryData = [
-            { id: "A001", name: "Modem TP-Link", quantity: 55 },
-            { id: "A002", name: "Router D-Link", quantity: 2 },
-            { id: "A003", name: "Switch Cisco", quantity: 0 },
-            { id: "A004", name: "Cáp mạng Cat6", quantity: 38 },
-            { id: "A005", name: "Bộ phát WiFi Tenda", quantity: 0 },
-            { id: "A006", name: "Ổ cắm mạng RJ45", quantity: 13 }
-        ];
 
-        // Hàm hiển thị danh sách hàng hóa theo loại
-        function showInventory(filter) {
-            const tableBody = document.getElementById("inventory-table-body");
-            tableBody.innerHTML = ""; // Xóa nội dung cũ
-
-            let filteredItems = inventoryData;
-
-            if (filter === "long-storage") {
-                filteredItems = inventoryData.filter(item => item.quantity > 50);
-            } else if (filter === "out-of-stock") {
-                filteredItems = inventoryData.filter(item => item.quantity === 0);
-            } else if (filter === "low-stock") {
-                filteredItems = inventoryData.filter(item => item.quantity > 0 && item.quantity <= 5);
-            } else if (filter === "damaged-stock") {
-                filteredItems = inventoryData.filter(item => item.quantity === 13);
-            }
-
-            // Cập nhật nội dung bảng
-            filteredItems.forEach(item => {
-                const row = `<tr>
-                    <td>${item.id}</td>
-                    <td>${item.name}</td>
-                    <td>${item.quantity}</td>
-                </tr>`;
-                tableBody.innerHTML += row;
-            });
-        }
-
-        // Mặc định hiển thị tất cả hàng hóa khi tải trang
-        document.addEventListener("DOMContentLoaded", function () {
-            showInventory("all-items");
-        });
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
