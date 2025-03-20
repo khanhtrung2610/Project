@@ -5,6 +5,7 @@ document.addEventListener("DOMContentLoaded", function () {
     updateInventoryStats();
 });
 
+// Hiển thị section tương ứng
 function showSection(sectionId) {
     document.querySelectorAll('.section').forEach(section => {
         section.style.display = 'none';
@@ -17,73 +18,88 @@ function showSection(sectionId) {
 
 window.showSection = showSection;
 
+// Thiết lập menu sidebar
 function setupMenu() {
-    document.querySelectorAll('.menu-item').forEach(item => {
-        item.addEventListener('click', function () {
-            let targetSection = this.getAttribute('data-target');
-            showSection(targetSection);
+    document.querySelectorAll("nav ul li a").forEach(item => {
+        item.addEventListener("click", function (event) {
+            event.preventDefault(); // Ngăn chuyển trang
+            let targetSection = this.getAttribute("onclick").match(/'(\w+)'/)[1];
+            if (targetSection) {
+                showSection(targetSection);
+            }
         });
     });
 }
 
+// Gán sự kiện click cho các nút chỉnh sửa & xóa thiết bị
 function setupEventListeners() {
     document.getElementById("add-device-btn")?.addEventListener("click", addDevice);
+
     document.addEventListener("click", function (event) {
+        let row = event.target.closest("tr");
+        if (!row) return;
+
         if (event.target.classList.contains("edit-btn")) {
-            editDevice(event.target.closest("tr"));
+            editDevice(row);
         } else if (event.target.classList.contains("delete-btn")) {
-            deleteDevice(event.target.closest("tr"));
+            deleteDevice(row);
         }
     });
 }
 
+// Chỉnh sửa thiết bị
 function editDevice(row) {
-    if (!row) return;
     let cells = row.getElementsByTagName("td");
     if (cells.length < 4) return;
-    
+
     let newName = prompt("Nhập tên thiết bị mới:", cells[1].textContent);
     let newType = prompt("Nhập loại thiết bị mới:", cells[2].textContent);
     let newQuantity = prompt("Nhập số lượng mới:", cells[3].textContent);
-    
-    if (newName) cells[1].textContent = newName;
-    if (newType) cells[2].textContent = newType;
-    if (newQuantity) cells[3].textContent = newQuantity;
+
+    if (newName !== null && newName.trim() !== "") cells[1].textContent = newName;
+    if (newType !== null && newType.trim() !== "") cells[2].textContent = newType;
+    if (newQuantity !== null && !isNaN(newQuantity) && Number(newQuantity) >= 0) {
+        cells[3].textContent = newQuantity;
+    }
 }
 
+// Xóa thiết bị
 function deleteDevice(row) {
-    if (row && confirm("Bạn có chắc chắn muốn xóa thiết bị này không?")) {
+    if (confirm("Bạn có chắc chắn muốn xóa thiết bị này không?")) {
         row.remove();
     }
 }
 
+// Thêm thiết bị mới
 function addDevice() {
-    let id = prompt("Nhập ID thiết bị:");
-    let name = prompt("Nhập tên thiết bị:");
-    let type = prompt("Nhập loại thiết bị:");
-    let quantity = prompt("Nhập số lượng:");
-    
-    if (id && name && type && quantity) {
-        let tableBody = document.getElementById("device-table-body");
-        if (!tableBody) return;
-        
-        let newRow = document.createElement("tr");
-        newRow.innerHTML = `
-            <td>${id}</td>
-            <td>${name}</td>
-            <td>${type}</td>
-            <td>${quantity}</td>
-            <td>
-                <button class="edit-btn">✏️ Sửa</button>
-                <button class="delete-btn">🗑️ Xóa</button>
-            </td>
-        `;
-        tableBody.appendChild(newRow);
-    } else {
-        alert("Vui lòng nhập đầy đủ thông tin thiết bị!");
+    let id = prompt("Nhập ID thiết bị:").trim();
+    let name = prompt("Nhập tên thiết bị:").trim();
+    let type = prompt("Nhập loại thiết bị:").trim();
+    let quantity = prompt("Nhập số lượng:").trim();
+
+    if (!id || !name || !type || !quantity || isNaN(quantity) || Number(quantity) < 0) {
+        alert("Vui lòng nhập đầy đủ thông tin hợp lệ!");
+        return;
     }
+
+    let tableBody = document.getElementById("device-table-body");
+    if (!tableBody) return;
+
+    let newRow = document.createElement("tr");
+    newRow.innerHTML = `
+        <td>${id}</td>
+        <td>${name}</td>
+        <td>${type}</td>
+        <td>${quantity}</td>
+        <td>
+            <button class="edit-btn">✏️ Sửa</button>
+            <button class="delete-btn">🗑️ Xóa</button>
+        </td>
+    `;
+    tableBody.appendChild(newRow);
 }
 
+// Cập nhật số liệu hàng tồn kho
 function updateInventoryStats() {
     let inventoryStats = {
         totalItems: 55,
@@ -92,8 +108,11 @@ function updateInventoryStats() {
         lowStock: 0,
         damagedItems: 13
     };
-    
+
     Object.keys(inventoryStats).forEach(key => {
-        document.getElementById(key)?.textContent = inventoryStats[key];
+        let element = document.getElementById(key);
+        if (element) {
+            element.textContent = inventoryStats[key];
+        }
     });
 }
