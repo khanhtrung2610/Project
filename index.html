@@ -5,6 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hệ thống quản lý kho</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        .dashboard-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .inventory-status {
+            display: flex;
+            gap: 10px;
+        }
+        .inventory-status button {
+            background-color: #333;
+            color: cyan;
+            border: none;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .inventory-status button:hover {
+            background-color: #555;
+        }
+    </style>
 </head>
 <body>
     <div class="app-container">
@@ -20,21 +42,25 @@
         </nav>
         <main class="main-content">
             <section id="dashboard" class="section active">
-                <h1>📊 Dashboard</h1>
-                <div class="dashboard-cards">
-                    <div class="card">📦 Tổng thiết bị: <span id="total-devices">100</span></div>
-                    <div class="card">📌 Hàng tồn kho: <span id="inventory">50</span></div>
-                    <div class="card">🔄 Giao dịch hôm nay: <span id="transactions">20</span></div>
-                </div>
-                <div class="inventory-status">
-                    <h2>📋 Hàng Hóa</h2>
-                    <ul>
-                        <li onclick="showInventory('all-items')">Tất cả (55)</li>
-                        <li onclick="showInventory('long-storage')">Tồn kho lâu (2)</li>
-                        <li onclick="showInventory('out-of-stock')">Hết hàng (38)</li>
-                        <li onclick="showInventory('low-stock')">Sắp hết hàng (0)</li>
-                        <li onclick="showInventory('damaged-stock')">Hàng bị lỗi (13)</li>
-                    </ul>
+                <div class="dashboard-container">
+                    <div>
+                        <h1>📊 Dashboard</h1>
+                        <div class="dashboard-cards">
+                            <div class="card">📦 Tổng thiết bị: <span id="total-devices">100</span></div>
+                            <div class="card">📌 Hàng tồn kho: <span id="inventory">50</span></div>
+                            <div class="card">🔄 Giao dịch hôm nay: <span id="transactions">20</span></div>
+                        </div>
+                    </div>
+                    <div>
+                        <h2>📋 Hàng Hóa</h2>
+                        <div class="inventory-status">
+                            <button onclick="showInventory('all-items')">Tất cả (55)</button>
+                            <button onclick="showInventory('long-storage')">Tồn kho lâu (2)</button>
+                            <button onclick="showInventory('out-of-stock')">Hết hàng (38)</button>
+                            <button onclick="showInventory('low-stock')">Sắp hết hàng (0)</button>
+                            <button onclick="showInventory('damaged-stock')">Hàng bị lỗi (13)</button>
+                        </div>
+                    </div>
                 </div>
                 <div id="inventory-content" class="inventory-content">
                     <table class="inventory-table">

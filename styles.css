@@ -6,6 +6,7 @@ body {
     padding: 0;
 }
 
+/* ----------- Cấu trúc chính ----------- */
 .app-container {
     display: flex;
     height: 100vh;
@@ -13,6 +14,7 @@ body {
     overflow: hidden;
 }
 
+/* Sidebar */
 .sidebar {
     width: 250px;
     background: #1e1e1e;
@@ -25,6 +27,7 @@ body {
     color: cyan;
 }
 
+/* Menu sidebar */
 .sidebar ul {
     list-style: none;
     padding: 0;
@@ -36,6 +39,8 @@ body {
     padding: 10px;
     margin: 5px 0;
     cursor: pointer;
+    border-radius: 5px;
+    text-align: center;
 }
 
 .sidebar ul li a {
@@ -48,6 +53,7 @@ body {
     background: #555;
 }
 
+/* Main Content */
 .main-content {
     flex: 1;
     padding: 20px;
@@ -58,17 +64,42 @@ body {
     width: calc(100vw - 250px);
 }
 
-.section {
-    display: none;
-    width: 100%;
-    height: 100%;
+/* ----------- Dashboard ----------- */
+.dashboard-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 }
 
-.section.active {
-    display: block;
+/* ----------- Danh mục hàng hóa (Nằm ngang) ----------- */
+.inventory-status {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 15px;
+    margin-top: 20px;
+    padding: 10px;
+    background: #222;
+    border-radius: 8px;
 }
 
-/* Bảng hiển thị đẹp hơn */
+.inventory-status button {
+    background-color: #333;
+    color: cyan;
+    border: none;
+    padding: 10px 15px;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background 0.3s, transform 0.2s;
+    font-weight: bold;
+}
+
+.inventory-status button:hover {
+    background-color: #555;
+    transform: scale(1.05);
+}
+
+/* ----------- Bảng hiển thị ----------- */
 table {
     width: 100%;
     border-collapse: collapse;
@@ -98,69 +129,23 @@ tbody tr:hover {
     background: #444;
 }
 
-/* Nút bấm sửa và xóa */
+/* ----------- Nút bấm ----------- */
 button {
     border: none;
-    padding: 5px 10px;
+    padding: 8px 12px;
     cursor: pointer;
     border-radius: 5px;
-}
-
-button:first-child {
-    background: orange;
-    color: white;
-}
-
-button:last-child {
-    background: red;
-    color: white;
-}
-
-.device-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 10px;
-    background: #1e1e1e;
-    color: white;
-}
-
-.device-table th, .device-table td {
-    border: 1px solid #333;
-    padding: 10px;
-    text-align: center;
-}
-
-.device-table th {
-    background: #333;
-    color: cyan;
-    font-weight: bold;
-}
-
-.device-table tbody tr:nth-child(even) {
-    background: #292929;
-}
-
-.device-table tbody tr:hover {
-    background: #444;
-}
-
-.edit-btn, .delete-btn {
-    border: none;
-    padding: 5px 10px;
-    margin: 2px;
-    cursor: pointer;
+    transition: background 0.3s;
 }
 
 .edit-btn {
     background: #007bff;
     color: white;
-    border-radius: 5px;
 }
 
 .delete-btn {
     background: #dc3545;
     color: white;
-    border-radius: 5px;
 }
 
 .edit-btn:hover {
@@ -187,99 +172,8 @@ button:last-child {
 #add-device-btn:hover {
     background: #218838;
 }
-.dashboard-container {
-    display: flex;
-    gap: 20px;
-}
 
-.product-categories {
-    width: 250px;
-    background: #222;
-    padding: 15px;
-    border-radius: 8px;
-}
-
-.product-categories h3 {
-    margin-bottom: 10px;
-    color: cyan;
-}
-
-.product-categories ul {
-    list-style: none;
-    padding: 0;
-}
-
-.product-categories ul li {
-    padding: 8px;
-    border-left: 3px solid cyan;
-    margin-bottom: 5px;
-    cursor: pointer;
-}
-
-.product-categories ul li:hover {
-    background: #333;
-}
-
-.product-stats {
-    flex-grow: 1;
-    background: #1e1e1e;
-    padding: 20px;
-    border-radius: 8px;
-}
-/* Sidebar danh mục hàng hóa */
-.inventory-menu {
-    width: 250px;
-    background: #1e1e1e;
-    padding: 20px;
-    height: 100vh;
-    overflow-y: auto;
-}
-
-.inventory-menu h3 {
-    color: cyan;
-    margin-bottom: 15px;
-}
-
-.inventory-menu ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.inventory-menu li {
-    padding: 10px;
-    margin: 5px 0;
-    cursor: pointer;
-    background: #333;
-    color: #fff;
-    border-radius: 5px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.inventory-menu li:hover {
-    background: #555;
-}
-
-.inventory-content {
-    flex: 1;
-    padding: 20px;
-    background: #181818;
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
-}
-
-.inventory-section {
-    display: none;
-}
-
-.inventory-section.active {
-    display: block;
-}
-
-/* Cấu trúc bảng hàng hóa */
+/* ----------- Cấu trúc bảng hàng hóa ----------- */
 .inventory-table {
     width: 100%;
     border-collapse: collapse;

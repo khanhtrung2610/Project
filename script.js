@@ -1,6 +1,8 @@
 document.addEventListener("DOMContentLoaded", function () {
     showSection('dashboard'); // Mặc định hiển thị Dashboard
     setupMenu();
+    setupEventListeners();
+    updateInventoryStats();
 });
 
 function showSection(sectionId) {
@@ -20,31 +22,36 @@ function setupMenu() {
     });
 }
 
-// Thêm chức năng sửa thiết bị
-function editDevice(event) {
-    let row = event.target.closest("tr");
-    let id = row.cells[0].textContent;
-    let name = row.cells[1].textContent;
-    let type = row.cells[2].textContent;
-    let quantity = row.cells[3].textContent;
-    
-    let newName = prompt("Nhập tên thiết bị mới:", name);
-    let newType = prompt("Nhập loại thiết bị mới:", type);
-    let newQuantity = prompt("Nhập số lượng mới:", quantity);
-    
-    if (newName !== null) row.cells[1].textContent = newName;
-    if (newType !== null) row.cells[2].textContent = newType;
-    if (newQuantity !== null) row.cells[3].textContent = newQuantity;
+function setupEventListeners() {
+    document.getElementById("add-device-btn").addEventListener("click", addDevice);
+    document.addEventListener("click", function (event) {
+        if (event.target.classList.contains("edit-btn")) {
+            editDevice(event);
+        } else if (event.target.classList.contains("delete-btn")) {
+            deleteDevice(event);
+        }
+    });
 }
 
-// Thêm chức năng xóa thiết bị
+function editDevice(event) {
+    let row = event.target.closest("tr");
+    let cells = row.getElementsByTagName("td");
+
+    let newName = prompt("Nhập tên thiết bị mới:", cells[1].textContent);
+    let newType = prompt("Nhập loại thiết bị mới:", cells[2].textContent);
+    let newQuantity = prompt("Nhập số lượng mới:", cells[3].textContent);
+
+    if (newName) cells[1].textContent = newName;
+    if (newType) cells[2].textContent = newType;
+    if (newQuantity) cells[3].textContent = newQuantity;
+}
+
 function deleteDevice(event) {
     if (confirm("Bạn có chắc chắn muốn xóa thiết bị này không?")) {
         event.target.closest("tr").remove();
     }
 }
 
-// Thêm chức năng thêm thiết bị mới
 function addDevice() {
     let id = prompt("Nhập ID thiết bị:");
     let name = prompt("Nhập tên thiết bị:");
@@ -70,25 +77,16 @@ function addDevice() {
     }
 }
 
-// Gán sự kiện cho các nút
-document.addEventListener("click", function (event) {
-    if (event.target.classList.contains("edit-btn")) {
-        editDevice(event);
-    } else if (event.target.classList.contains("delete-btn")) {
-        deleteDevice(event);
-    }
-});
-
-// Gán sự kiện cho nút thêm thiết bị
-document.getElementById("add-device-btn").addEventListener("click", addDevice);
-
-// Cập nhật số liệu hàng hóa trong Dashboard
 function updateInventoryStats() {
-    document.getElementById("total-items").textContent = 55;
-    document.getElementById("long-stock").textContent = 2;
-    document.getElementById("out-of-stock").textContent = 38;
-    document.getElementById("low-stock").textContent = 0;
-    document.getElementById("damaged-items").textContent = 13;
-}
+    let inventoryStats = {
+        totalItems: 55,
+        longStock: 2,
+        outOfStock: 38,
+        lowStock: 0,
+        damagedItems: 13
+    };
 
-document.addEventListener("DOMContentLoaded", updateInventoryStats);
+    for (let key in inventoryStats) {
+        document.getElementById(key).textContent = inventoryStats[key];
+    }
+}
