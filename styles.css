@@ -12,19 +12,22 @@ body {
     height: 100vh;
     width: 100vw;
     overflow: hidden;
+    flex-wrap: nowrap; /* Giữ bố cục ngang, không xuống dòng */
 }
 
 /* Sidebar */
 .sidebar {
     width: 250px;
-    background: #1e1e1e;
+    background: #181818;
     padding: 20px;
     height: 100vh;
     overflow-y: auto;
+    flex-shrink: 0;
 }
 
 .sidebar h2 {
     color: cyan;
+    text-align: center;
 }
 
 /* Menu sidebar */
@@ -35,12 +38,13 @@ body {
 }
 
 .sidebar ul li {
-    background: #333;
+    background: #252525;
     padding: 10px;
     margin: 5px 0;
     cursor: pointer;
     border-radius: 5px;
     text-align: center;
+    transition: background 0.3s ease-in-out;
 }
 
 .sidebar ul li a {
@@ -49,16 +53,9 @@ body {
     display: block;
     padding: 10px;
     border-radius: 5px;
-    transition: background 0.3s;
 }
 
-.sidebar ul li a:hover,
-.sidebar ul li.active a {
-    background: cyan;
-    color: black;
-}
-
-/* Thêm hiệu ứng mục đang chọn trong sidebar */
+.sidebar ul li:hover, 
 .sidebar ul li.active {
     background: cyan;
     color: black;
@@ -67,13 +64,12 @@ body {
 
 /* Main Content */
 .main-content {
-    flex: 1;
+    flex-grow: 1;
     padding: 20px;
     overflow-y: auto;
     background: #181818;
     display: flex;
     flex-direction: column;
-    width: calc(100vw - 250px);
 }
 
 /* ----------- Dashboard ----------- */
@@ -86,11 +82,10 @@ body {
     background: #222;
 }
 
-/* ----------- Danh mục hàng hóa (Nằm ngang) ----------- */
+/* ----------- Trạng thái kho hàng ----------- */
 .inventory-status {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
     gap: 15px;
     margin-top: 20px;
     padding: 10px;
@@ -98,30 +93,13 @@ body {
     border-radius: 8px;
 }
 
-.inventory-status button {
-    background-color: #333;
-    color: cyan;
-    border: none;
-    padding: 10px 15px;
-    cursor: pointer;
-    border-radius: 5px;
-    transition: background 0.3s, transform 0.2s;
-    font-weight: bold;
-}
-
-.inventory-status button:hover {
-    background-color: #555;
-    transform: scale(1.05);
-}
-
-/* ----------- Bảng hiển thị ----------- */
+/* ----------- Bảng hiển thị thiết bị ----------- */
 table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 20px;
     background: #222;
     border-radius: 10px;
-    overflow: hidden;
 }
 
 th, td {
@@ -142,7 +120,6 @@ tbody tr:nth-child(even) {
 
 tbody tr:hover {
     background: #444;
-    transform: scale(1.01);
     transition: all 0.2s ease-in-out;
 }
 
@@ -152,7 +129,7 @@ button {
     padding: 10px 15px;
     cursor: pointer;
     border-radius: 5px;
-    transition: background 0.3s, transform 0.2s;
+    transition: background 0.3s ease-in-out;
     font-weight: bold;
 }
 
@@ -187,42 +164,98 @@ button:hover {
     font-weight: bold;
     border-radius: 5px;
     margin-bottom: 10px;
-    display: block;
-    width: fit-content;
 }
 
 #add-device-btn:hover {
     background: #218838;
-    transform: scale(1.08);
 }
 
-/* ----------- Cấu trúc bảng hàng hóa ----------- */
-.inventory-table {
+/* ----------- Modal nhập thiết bị ----------- */
+#modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
     width: 100%;
-    border-collapse: collapse;
-    margin-top: 10px;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 999;
+}
+
+#modal-overlay.show {
+    display: block;
+}
+
+#device-modal {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     background: #1e1e1e;
     color: white;
+    padding: 20px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    z-index: 1000;
+    width: 350px;
+    animation: fadeIn 0.3s ease-in-out;
 }
 
-.inventory-table th, .inventory-table td {
-    border: 1px solid #333;
-    padding: 12px;
-    text-align: left;
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -60%);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
 }
 
-.inventory-table th {
-    background: #333;
+#device-modal.show {
+    display: block;
+}
+
+#device-modal h2 {
+    margin-bottom: 10px;
     color: cyan;
+    text-align: center;
+}
+
+#device-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#device-form label {
     font-weight: bold;
 }
 
-.inventory-table tbody tr:nth-child(even) {
-    background: #292929;
+#device-form input,
+#device-form select {
+    padding: 8px;
+    border-radius: 5px;
+    border: 1px solid #444;
+    background: #222;
+    color: white;
 }
 
-.inventory-table tbody tr:hover {
-    background: #444;
-    transform: scale(1.01);
-    transition: all 0.2s ease-in-out;
+#save-device-btn {
+    background: #28a745;
+    color: white;
+}
+
+#save-device-btn:hover {
+    background: #218838;
+}
+
+#close-modal-btn {
+    background: #dc3545;
+    color: white;
+}
+
+#close-modal-btn:hover {
+    background: #a71d2a;
 }

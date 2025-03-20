@@ -1,161 +1,179 @@
-import { createClient } from "@supabase/supabase-js";
+// Đảm bảo file là module
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+import * as XLSX from "https://cdn.jsdelivr.net/npm/xlsx/xlsx.mjs";
 
+// Cấu hình Supabase
 const SUPABASE_URL = "https://cmggklinznikcdvmdekb.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtZ2drbGluem5pa2Nkdm1kZWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI0NDIzMjYsImV4cCI6MjA1ODAxODMyNn0.7ltLcaQteDNT-qFYenwMc5alhIuPndVXXvg5fdZw5Io";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-document.addEventListener("DOMContentLoaded", function () {
-    showSection("dashboard"); // Mặc định hiển thị Dashboard
+document.addEventListener("DOMContentLoaded", () => {
     setupMenu();
-    setupEventListeners();
-    fetchDevices(); // Lấy dữ liệu từ Supabase
+    fetchDevices();
+    setupModalEvents();
+    document.getElementById("export-excel-btn")?.addEventListener("click", exportToExcel);
 });
 
-// Hiển thị section tương ứng
-function showSection(sectionId) {
-    document.querySelectorAll(".section").forEach((section) => {
-        section.style.display = "none";
-    });
-    let activeSection = document.getElementById(sectionId);
-    if (activeSection) {
-        activeSection.style.display = "block";
-    }
-}
-
-window.showSection = showSection;
-
-// Thiết lập menu sidebar
+// 🏷️ Thiết lập menu sidebar
 function setupMenu() {
-    document.querySelectorAll("nav ul li a").forEach((item) => {
-        item.addEventListener("click", function (event) {
+    document.querySelectorAll(".menu-item").forEach(item => {
+        item.addEventListener("click", event => {
             event.preventDefault();
-            let targetSection = this.getAttribute("data-target");
-            if (targetSection) {
-                showSection(targetSection);
-            }
+            showSection(item.getAttribute("data-target"));
         });
     });
 }
 
-// Lấy danh sách thiết bị từ Supabase
-async function fetchDevices() {
-    let { data, error } = await supabase.from("devices").select("*");
-
-    if (error) {
-        console.error("Lỗi khi lấy dữ liệu:", error.message);
-        return;
-    }
-
-    displayDevices(data);
-    updateInventoryStats(data);
+// 🏷️ Hiển thị section tương ứng
+function showSection(sectionId) {
+    document.querySelectorAll(".section").forEach(section => section.style.display = "none");
+    document.getElementById(sectionId)?.style.display = "block";
 }
 
-// Hiển thị danh sách thiết bị
+// 🏷️ Lấy danh sách thiết bị từ Supabase
+async function fetchDevices() {
+    try {
+        const { data, error } = await supabase.from("devices").select("*");
+        if (error) {
+            alert("Lỗi khi lấy dữ liệu từ server. Vui lòng thử lại!");
+            throw error;
+        }
+        displayDevices(data);
+        updateInventoryStats(data);
+    } catch (error) {
+        console.error("Lỗi khi lấy dữ liệu:", error.message);
+    }
+}
+
+// 🏷️ Hiển thị danh sách thiết bị
 function displayDevices(devices) {
     const tableBody = document.getElementById("device-table-body");
     if (!tableBody) return;
-    tableBody.innerHTML = ""; // Xóa dữ liệu cũ
+    tableBody.innerHTML = devices.length === 0
+        ? `<tr><td colspan="6" style="text-align:center;">Không có thiết bị nào</td></tr>`
+        : devices.map(device => `
+            <tr>
+                <td>${device.id}</td>
+                <td>${device.name}</td>
+                <td>${device.type}</td>
+                <td>${device.quantity}</td>
+                <td>${device.status}</td>
+                <td>
+                    <button class="edit-btn" data-id="${device.id}">✏️ Sửa</button>
+                    <button class="delete-btn" data-id="${device.id}">🗑️ Xóa</button>
+                </td>
+            </tr>`).join("");
 
-    devices.forEach((device) => {
-        let row = document.createElement("tr");
-        row.innerHTML = `
-            <td>${device.id}</td>
-            <td>${device.name}</td>
-            <td>${device.type}</td>
-            <td>${device.quantity}</td>
-            <td>${device.status}</td>
-            <td>
-                <button class="edit-btn" onclick="openEditForm('${device.id}', '${device.name}', '${device.type}', '${device.quantity}', '${device.status}')">✏️ Sửa</button>
-                <button class="delete-btn" onclick="deleteDevice('${device.id}')">🗑️ Xóa</button>
-            </td>
-        `;
-        tableBody.appendChild(row);
+    document.querySelectorAll(".edit-btn").forEach(btn => btn.addEventListener("click", openEditForm));
+    document.querySelectorAll(".delete-btn").forEach(btn => btn.addEventListener("click", deleteDevice));
+}
+
+// 🏷️ Mở form nhập thiết bị (thêm/sửa)
+function openForm(isEdit = false, device = {}) {
+    document.getElementById("device-form").reset();
+    document.getElementById("device-id").value = isEdit ? device.id : "";
+    document.getElementById("device-name").value = device.name || "";
+    document.getElementById("device-type").value = device.type || "";
+    document.getElementById("device-quantity").value = device.quantity || "";
+    document.getElementById("device-status").value = device.status || "available";
+    document.getElementById("device-modal").style.display = "block";
+}
+
+// 🏷️ Mở form sửa thiết bị
+function openEditForm(event) {
+    const deviceId = event.target.dataset.id;
+    const row = event.target.closest("tr").children;
+    openForm(true, {
+        id: deviceId,
+        name: row[1].textContent,
+        type: row[2].textContent,
+        quantity: row[3].textContent,
+        status: row[4].textContent
     });
 }
 
-// Mở form thêm thiết bị
-function openAddForm() {
-    document.getElementById("device-form").reset();
-    document.getElementById("device-id").value = "";
-    document.getElementById("device-modal").style.display = "block";
-}
-
-// Mở form sửa thiết bị
-function openEditForm(id, name, type, quantity, status) {
-    document.getElementById("device-id").value = id;
-    document.getElementById("device-name").value = name;
-    document.getElementById("device-type").value = type;
-    document.getElementById("device-quantity").value = quantity;
-    document.getElementById("device-status").value = status;
-    document.getElementById("device-modal").style.display = "block";
-}
-
-// Lưu thiết bị (thêm mới hoặc chỉnh sửa)
+// 🏷️ Lưu thiết bị (thêm mới hoặc cập nhật)
 async function saveDevice() {
-    let id = document.getElementById("device-id").value;
-    let name = document.getElementById("device-name").value.trim();
-    let type = document.getElementById("device-type").value.trim();
-    let quantity = Number(document.getElementById("device-quantity").value);
-    let status = document.getElementById("device-status").value;
+    const id = document.getElementById("device-id").value;
+    const name = document.getElementById("device-name").value.trim();
+    const type = document.getElementById("device-type").value.trim();
+    const quantity = Number(document.getElementById("device-quantity").value);
+    const status = document.getElementById("device-status").value;
 
     if (!name || !type || isNaN(quantity) || quantity < 0 || !status) {
         alert("Vui lòng nhập thông tin hợp lệ!");
         return;
     }
 
-    if (id) {
-        // Cập nhật thiết bị
-        let { error } = await supabase.from("devices").update({ name, type, quantity, status }).eq("id", id);
-        if (error) {
-            console.error("Lỗi khi cập nhật thiết bị:", error.message);
+    try {
+        let error;
+        if (id) {
+            ({ error } = await supabase.from("devices").update({ name, type, quantity, status }).eq("id", id));
         } else {
-            alert("Cập nhật thiết bị thành công!");
+            ({ error } = await supabase.from("devices").insert([{ name, type, quantity, status }] ));
         }
-    } else {
-        // Thêm thiết bị mới
-        let { error } = await supabase.from("devices").insert([{ name, type, quantity, status }]);
-        if (error) {
-            console.error("Lỗi khi thêm thiết bị:", error.message);
-        } else {
-            alert("Thêm thiết bị thành công!");
-        }
-    }
+        if (error) throw error;
 
-    document.getElementById("device-modal").style.display = "none";
-    fetchDevices();
+        alert(id ? "Cập nhật thiết bị thành công!" : "Thêm thiết bị thành công!");
+        closeModal();
+        fetchDevices();
+    } catch (error) {
+        console.error("Lỗi khi lưu thiết bị:", error.message);
+    }
 }
 
-// Xóa thiết bị
-async function deleteDevice(deviceId) {
+// 🏷️ Xóa thiết bị
+async function deleteDevice(event) {
+    const deviceId = event.target.dataset.id;
     if (!confirm("Bạn có chắc chắn muốn xóa thiết bị này không?")) return;
 
-    let { error } = await supabase.from("devices").delete().eq("id", deviceId);
-    if (error) {
-        console.error("Lỗi khi xóa thiết bị:", error.message);
-    } else {
+    try {
+        const { error } = await supabase.from("devices").delete().eq("id", deviceId);
+        if (error) throw error;
         alert("Xóa thiết bị thành công!");
         fetchDevices();
+    } catch (error) {
+        console.error("Lỗi khi xóa thiết bị:", error.message);
     }
 }
 
-// Cập nhật số liệu hàng tồn kho
+// 🏷️ Cập nhật số liệu hàng tồn kho
 function updateInventoryStats(devices) {
-    let totalItemsEl = document.getElementById("totalItems");
-    let inventoryEl = document.getElementById("inventory");
-    let transactionsEl = document.getElementById("transactions");
-
-    if (!totalItemsEl || !inventoryEl || !transactionsEl) return;
-
-    let totalItems = devices.length;
-    let inventory = devices.reduce((sum, item) => sum + item.quantity, 0);
-    let transactions = Math.floor(Math.random() * 100);
-
-    totalItemsEl.textContent = totalItems;
-    inventoryEl.textContent = inventory;
-    transactionsEl.textContent = transactions;
+    document.getElementById("totalItems").textContent = devices.length;
+    document.getElementById("inventory").textContent = devices.reduce((sum, item) => sum + item.quantity, 0);
+    document.getElementById("transactions").textContent = Math.floor(Math.random() * 100);
 }
 
-// Gán sự kiện cho nút "Thêm thiết bị"
-document.getElementById("add-device-btn")?.addEventListener("click", openAddForm);
-document.getElementById("save-device-btn")?.addEventListener("click", saveDevice);
+// 🏷️ Xuất dữ liệu ra Excel
+function exportToExcel() {
+    supabase.from("devices").select("*").then(({ data, error }) => {
+        if (error) {
+            alert("Lỗi khi lấy dữ liệu để xuất file Excel!");
+            return;
+        }
+
+        const worksheet = XLSX.utils.json_to_sheet(data);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Devices");
+
+        XLSX.writeFile(workbook, "danh_sach_thiet_bi.xlsx");
+        alert("Xuất file Excel thành công!");
+    });
+}
+
+// 🏷️ Đóng modal
+function closeModal() {
+    document.getElementById("device-modal").style.display = "none";
+}
+
+// 🏷️ Cài đặt sự kiện modal
+function setupModalEvents() {
+    document.getElementById("device-modal").addEventListener("click", (e) => {
+        if (e.target.classList.contains("modal")) closeModal();
+    });
+
+    document.getElementById("add-device-btn")?.addEventListener("click", () => openForm());
+    document.getElementById("save-device-btn")?.addEventListener("click", saveDevice);
+    document.getElementById("close-modal-btn")?.addEventListener("click", closeModal);
+}
