@@ -23,7 +23,7 @@ function setupMenu() {
     document.querySelectorAll("nav ul li a").forEach(item => {
         item.addEventListener("click", function (event) {
             event.preventDefault(); // Ngăn chuyển trang
-            let targetSection = this.getAttribute("onclick").match(/'(\w+)'/)[1];
+            let targetSection = this.getAttribute("data-target"); // ✅ Sửa lỗi
             if (targetSection) {
                 showSection(targetSection);
             }
@@ -103,10 +103,8 @@ function addDevice() {
 function updateInventoryStats() {
     let inventoryStats = {
         totalItems: 55,
-        longStock: 2,
-        outOfStock: 38,
-        lowStock: 0,
-        damagedItems: 13
+        inventory: 50,       // ✅ Sửa ID
+        transactions: 20      // ✅ Sửa ID
     };
 
     Object.keys(inventoryStats).forEach(key => {

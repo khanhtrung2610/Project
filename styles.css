@@ -47,10 +47,22 @@ body {
     text-decoration: none;
     color: #fff;
     display: block;
+    padding: 10px;
+    border-radius: 5px;
+    transition: background 0.3s;
 }
 
-.sidebar ul li:hover {
-    background: #555;
+.sidebar ul li a:hover,
+.sidebar ul li.active a {
+    background: cyan;
+    color: black;
+}
+
+/* Thêm hiệu ứng mục đang chọn trong sidebar */
+.sidebar ul li.active {
+    background: cyan;
+    color: black;
+    font-weight: bold;
 }
 
 /* Main Content */
@@ -69,6 +81,9 @@ body {
     display: flex;
     flex-direction: column;
     gap: 20px;
+    padding: 20px;
+    border-radius: 10px;
+    background: #222;
 }
 
 /* ----------- Danh mục hàng hóa (Nằm ngang) ----------- */
@@ -127,15 +142,22 @@ tbody tr:nth-child(even) {
 
 tbody tr:hover {
     background: #444;
+    transform: scale(1.01);
+    transition: all 0.2s ease-in-out;
 }
 
 /* ----------- Nút bấm ----------- */
 button {
     border: none;
-    padding: 8px 12px;
+    padding: 10px 15px;
     cursor: pointer;
     border-radius: 5px;
-    transition: background 0.3s;
+    transition: background 0.3s, transform 0.2s;
+    font-weight: bold;
+}
+
+button:hover {
+    transform: scale(1.05);
 }
 
 .edit-btn {
@@ -160,7 +182,7 @@ button {
 #add-device-btn {
     background: #28a745;
     color: white;
-    padding: 10px 15px;
+    padding: 12px 18px;
     font-size: 16px;
     font-weight: bold;
     border-radius: 5px;
@@ -171,6 +193,7 @@ button {
 
 #add-device-btn:hover {
     background: #218838;
+    transform: scale(1.08);
 }
 
 /* ----------- Cấu trúc bảng hàng hóa ----------- */
@@ -184,7 +207,7 @@ button {
 
 .inventory-table th, .inventory-table td {
     border: 1px solid #333;
-    padding: 10px;
+    padding: 12px;
     text-align: left;
 }
 
@@ -200,4 +223,6 @@ button {
 
 .inventory-table tbody tr:hover {
     background: #444;
+    transform: scale(1.01);
+    transition: all 0.2s ease-in-out;
 }
