@@ -6,11 +6,18 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 function showSection(sectionId) {
+    // Ẩn tất cả section
     document.querySelectorAll('.section').forEach(section => {
-        section.classList.remove('active');
+        section.style.display = 'none';
     });
-    document.getElementById(sectionId).classList.add('active');
+
+    // Hiển thị section được chọn
+    let activeSection = document.getElementById(sectionId);
+    if (activeSection) {
+        activeSection.style.display = 'block';
+    }
 }
+
 window.showSection = showSection;
 
 function setupMenu() {
@@ -23,7 +30,11 @@ function setupMenu() {
 }
 
 function setupEventListeners() {
-    document.getElementById("add-device-btn").addEventListener("click", addDevice);
+    let addDeviceBtn = document.getElementById("add-device-btn");
+    if (addDeviceBtn) {
+        addDeviceBtn.addEventListener("click", addDevice);
+    }
+
     document.addEventListener("click", function (event) {
         if (event.target.classList.contains("edit-btn")) {
             editDevice(event);
@@ -35,7 +46,10 @@ function setupEventListeners() {
 
 function editDevice(event) {
     let row = event.target.closest("tr");
+    if (!row) return;
+
     let cells = row.getElementsByTagName("td");
+    if (cells.length < 4) return;
 
     let newName = prompt("Nhập tên thiết bị mới:", cells[1].textContent);
     let newType = prompt("Nhập loại thiết bị mới:", cells[2].textContent);
@@ -60,6 +74,8 @@ function addDevice() {
 
     if (id && name && type && quantity) {
         let tableBody = document.getElementById("device-table-body");
+        if (!tableBody) return;
+
         let newRow = document.createElement("tr");
         newRow.innerHTML = `
             <td>${id}</td>
@@ -87,6 +103,9 @@ function updateInventoryStats() {
     };
 
     for (let key in inventoryStats) {
-        document.getElementById(key).textContent = inventoryStats[key];
+        let element = document.getElementById(key);
+        if (element) {
+            element.textContent = inventoryStats[key];
+        }
     }
 }
