@@ -106,6 +106,8 @@ function updateInventoryStats() {
         let element = document.getElementById(key);
         if (element) {
             element.textContent = inventoryStats[key];
+        } else {
+            console.warn(`Phần tử với id="${key}" không tồn tại!`);
         }
     }
 }
