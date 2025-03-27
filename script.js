@@ -20,6 +20,23 @@ document.addEventListener("DOMContentLoaded", function () {
     // Mảng lưu trữ dữ liệu thanh toán
     let payments = [];
 
+    // Transaction Management
+    let selectedProducts = [];
+    let transactionType = 'import';
+
+    // Alert Management
+    let alerts = [];
+    let alertSettings = {
+        lowStockThreshold: 10,
+        largeChangeThreshold: 50,
+        notificationMethods: {
+            system: true,
+            email: true,
+            sms: false
+        },
+        checkFrequency: 'realtime'
+    };
+
     async function fetchData(endpoint) {
         try {
             const res = await fetch(`http://localhost:5001/api/${endpoint}`);
@@ -361,4 +378,506 @@ document.addEventListener("DOMContentLoaded", function () {
         status: 'completed',
         note: 'Thanh toán đơn hàng'
     });
+
+    // Switch between import/export
+    document.querySelectorAll('.transaction-type button').forEach(button => {
+        button.addEventListener('click', () => {
+            document.querySelector('.transaction-type button.active').classList.remove('active');
+            button.classList.add('active');
+            transactionType = button.dataset.type;
+            updateSupplierLabel();
+        });
+    });
+
+    // Update supplier/receiver label based on transaction type
+    function updateSupplierLabel() {
+        const label = document.querySelector('label[for="supplier"]');
+        label.textContent = transactionType === 'import' ? 'Nhà cung cấp' : 'Người nhận';
+    }
+
+    // Add product to the list
+    function addProduct() {
+        const deviceSelect = document.getElementById('device-select');
+        const quantity = document.getElementById('quantity');
+        
+        if (!deviceSelect.value || !quantity.value || quantity.value < 1) {
+            alert('Vui lòng chọn thiết bị và nhập số lượng hợp lệ');
+            return;
+        }
+
+        const device = deviceSelect.options[deviceSelect.selectedIndex];
+        const product = {
+            id: deviceSelect.value,
+            name: device.text,
+            quantity: parseInt(quantity.value),
+            unit: 'Cái' // You can make this dynamic based on device type
+        };
+
+        // Check if product already exists
+        const existingProduct = selectedProducts.find(p => p.id === product.id);
+        if (existingProduct) {
+            existingProduct.quantity += product.quantity;
+            updateProductsList();
+        } else {
+            selectedProducts.push(product);
+            updateProductsList();
+        }
+
+        // Reset inputs
+        deviceSelect.value = '';
+        quantity.value = '';
+        updateTotalItems();
+    }
+
+    // Update the products table
+    function updateProductsList() {
+        const tbody = document.getElementById('selected-products-list');
+        tbody.innerHTML = '';
+
+        selectedProducts.forEach((product, index) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${product.id}</td>
+                <td>${product.name}</td>
+                <td>${product.quantity}</td>
+                <td>${product.unit}</td>
+                <td>
+                    <i class="fas fa-times remove-product" onclick="removeProduct(${index})"></i>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // Remove product from the list
+    function removeProduct(index) {
+        selectedProducts.splice(index, 1);
+        updateProductsList();
+        updateTotalItems();
+    }
+
+    // Update total items count
+    function updateTotalItems() {
+        const total = selectedProducts.reduce((sum, product) => sum + product.quantity, 0);
+        document.getElementById('total-items').textContent = total;
+    }
+
+    // Handle transaction submission
+    document.querySelector('.complete-transaction').addEventListener('click', async () => {
+        const warehouse = document.getElementById('warehouse').value;
+        const transactionDate = document.getElementById('transaction-date').value;
+        const supplier = document.getElementById('supplier').value;
+        const notes = document.getElementById('notes').value;
+
+        if (!warehouse || !transactionDate || !supplier || selectedProducts.length === 0) {
+            alert('Vui lòng điền đầy đủ thông tin và chọn ít nhất một sản phẩm');
+            return;
+        }
+
+        const transaction = {
+            type: transactionType,
+            warehouse,
+            date: transactionDate,
+            supplier,
+            notes,
+            products: selectedProducts
+        };
+
+        try {
+            const response = await fetch('/api/transactions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(transaction)
+            });
+
+            if (response.ok) {
+                alert('Giao dịch đã được lưu thành công!');
+                resetForm();
+            } else {
+                throw new Error('Có lỗi xảy ra');
+            }
+        } catch (error) {
+            alert('Không thể lưu giao dịch: ' + error.message);
+        }
+    });
+
+    // Save transaction as draft
+    document.querySelector('.save-draft').addEventListener('click', () => {
+        const transaction = {
+            type: transactionType,
+            warehouse: document.getElementById('warehouse').value,
+            date: document.getElementById('transaction-date').value,
+            supplier: document.getElementById('supplier').value,
+            notes: document.getElementById('notes').value,
+            products: selectedProducts,
+            status: 'draft'
+        };
+
+        // Save to localStorage
+        const drafts = JSON.parse(localStorage.getItem('transactionDrafts') || '[]');
+        drafts.push(transaction);
+        localStorage.setItem('transactionDrafts', JSON.stringify(drafts));
+        alert('Đã lưu nháp thành công!');
+    });
+
+    // Reset form
+    function resetForm() {
+        document.getElementById('warehouse').value = '';
+        document.getElementById('transaction-date').value = '';
+        document.getElementById('supplier').value = '';
+        document.getElementById('notes').value = '';
+        selectedProducts = [];
+        updateProductsList();
+        updateTotalItems();
+    }
+
+    // Navigation
+    document.addEventListener('DOMContentLoaded', () => {
+        // Get all menu items and sections
+        const menuItems = document.querySelectorAll('.sidebar ul li');
+        const sections = document.querySelectorAll('.section');
+
+        // Show dashboard by default
+        document.getElementById('dashboard').classList.add('active');
+        menuItems[0].classList.add('active');
+
+        // Add click event to menu items
+        menuItems.forEach(item => {
+            item.addEventListener('click', () => {
+                // Remove active class from all menu items and sections
+                menuItems.forEach(i => i.classList.remove('active'));
+                sections.forEach(s => s.classList.remove('active'));
+
+                // Add active class to clicked menu item
+                item.classList.add('active');
+
+                // Show corresponding section
+                const sectionId = item.getAttribute('data-section');
+                document.getElementById(sectionId).classList.add('active');
+            });
+        });
+    });
+
+    // Initialize alerts
+    function initializeAlerts() {
+        // Load alert settings from localStorage
+        const savedSettings = localStorage.getItem('alertSettings');
+        if (savedSettings) {
+            alertSettings = JSON.parse(savedSettings);
+            updateAlertSettingsForm();
+        }
+
+        // Add event listeners for alert filters
+        document.querySelectorAll('.alert-type-filters .filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelector('.alert-type-filters .filter-btn.active').classList.remove('active');
+                btn.classList.add('active');
+                filterAlerts();
+            });
+        });
+
+        document.querySelectorAll('.alert-severity-filters .filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelector('.alert-severity-filters .filter-btn.active').classList.remove('active');
+                btn.classList.add('active');
+                filterAlerts();
+            });
+        });
+
+        // Initialize alert settings form
+        const alertSettingsForm = document.getElementById('alert-settings-form');
+        if (alertSettingsForm) {
+            alertSettingsForm.addEventListener('submit', handleAlertSettingsSubmit);
+        }
+
+        // Start alert checking based on frequency
+        startAlertChecking();
+    }
+
+    // Check for alerts based on current inventory
+    function checkAlerts() {
+        const devices = []; // This should be your actual devices data
+        const transactions = []; // This should be your actual transactions data
+
+        // Check for low stock
+        devices.forEach(device => {
+            if (device.quantity <= alertSettings.lowStockThreshold) {
+                createAlert({
+                    type: 'low-stock',
+                    severity: device.quantity <= alertSettings.lowStockThreshold / 2 ? 'high' : 'medium',
+                    title: `Sắp hết hàng: ${device.name}`,
+                    message: `Số lượng tồn kho: ${device.quantity} (Dưới ngưỡng ${alertSettings.lowStockThreshold})`,
+                    deviceId: device.id
+                });
+            }
+        });
+
+        // Check for large changes
+        transactions.forEach(transaction => {
+            const changePercent = (transaction.quantity / getDeviceTotalQuantity(transaction.deviceId)) * 100;
+            if (changePercent >= alertSettings.largeChangeThreshold) {
+                createAlert({
+                    type: 'transaction',
+                    severity: 'high',
+                    title: `Thay đổi lớn: ${transaction.deviceName}`,
+                    message: `Thay đổi ${changePercent.toFixed(1)}% trong một giao dịch`,
+                    transactionId: transaction.id
+                });
+            }
+        });
+
+        // Update UI
+        displayAlerts();
+    }
+
+    // Create new alert
+    function createAlert(alertData) {
+        const alert = {
+            id: 'ALT' + Date.now(),
+            timestamp: new Date().toISOString(),
+            read: false,
+            ...alertData
+        };
+
+        alerts.unshift(alert);
+        notifyUser(alert);
+    }
+
+    // Display alerts in UI
+    function displayAlerts() {
+        const containers = {
+            'low-stock': document.getElementById('low-stock-alerts'),
+            'inventory': document.getElementById('inventory-alerts'),
+            'transaction': document.getElementById('transaction-alerts'),
+            'system': document.getElementById('system-alerts')
+        };
+
+        // Clear existing alerts
+        Object.values(containers).forEach(container => {
+            if (container) container.innerHTML = '';
+        });
+
+        // Group and display alerts
+        const filteredAlerts = filterAlerts();
+        filteredAlerts.forEach(alert => {
+            const container = containers[alert.type];
+            if (!container) return;
+
+            const alertElement = createAlertElement(alert);
+            container.appendChild(alertElement);
+        });
+
+        // Update unread count
+        updateUnreadCount();
+    }
+
+    // Create alert element
+    function createAlertElement(alert) {
+        const div = document.createElement('div');
+        div.className = `alert-item ${alert.read ? 'read' : 'unread'}`;
+        div.innerHTML = `
+            <div class="alert-icon ${alert.severity}">
+                ${getAlertIcon(alert.type)}
+            </div>
+            <div class="alert-content">
+                <div class="alert-header">
+                    <div class="alert-title">${alert.title}</div>
+                    <div class="alert-time">${formatAlertTime(alert.timestamp)}</div>
+                </div>
+                <div class="alert-message">${alert.message}</div>
+                <div class="alert-actions">
+                    <button class="btn" onclick="markAsRead('${alert.id}')">
+                        <i class="fas fa-check"></i> Đánh dấu đã đọc
+                    </button>
+                    ${getAlertActions(alert)}
+                </div>
+            </div>
+        `;
+        return div;
+    }
+
+    // Get alert icon based on type
+    function getAlertIcon(type) {
+        const icons = {
+            'low-stock': '<i class="fas fa-box"></i>',
+            'inventory': '<i class="fas fa-clipboard-check"></i>',
+            'transaction': '<i class="fas fa-exchange-alt"></i>',
+            'system': '<i class="fas fa-cog"></i>'
+        };
+        return icons[type] || '<i class="fas fa-bell"></i>';
+    }
+
+    // Get additional actions based on alert type
+    function getAlertActions(alert) {
+        switch (alert.type) {
+            case 'low-stock':
+                return `
+                    <button class="btn" onclick="viewDevice('${alert.deviceId}')">
+                        <i class="fas fa-eye"></i> Xem thiết bị
+                    </button>
+                    <button class="btn primary-btn" onclick="createImportTransaction('${alert.deviceId}')">
+                        <i class="fas fa-plus"></i> Tạo nhập kho
+                    </button>
+                `;
+            case 'transaction':
+                return `
+                    <button class="btn" onclick="viewTransaction('${alert.transactionId}')">
+                        <i class="fas fa-eye"></i> Xem giao dịch
+                    </button>
+                `;
+            default:
+                return '';
+        }
+    }
+
+    // Filter alerts based on current filters
+    function filterAlerts() {
+        const typeFilter = document.querySelector('.alert-type-filters .filter-btn.active')?.dataset.type;
+        const severityFilter = document.querySelector('.alert-severity-filters .filter-btn.active')?.dataset.severity;
+
+        return alerts.filter(alert => {
+            const matchesType = typeFilter === 'all' || alert.type === typeFilter;
+            const matchesSeverity = severityFilter === 'all' || alert.severity === severityFilter;
+            return matchesType && matchesSeverity;
+        });
+    }
+
+    // Mark alert as read
+    function markAsRead(alertId) {
+        const alert = alerts.find(a => a.id === alertId);
+        if (alert) {
+            alert.read = true;
+            displayAlerts();
+        }
+    }
+
+    // Mark all alerts as read
+    function markAllAsRead() {
+        alerts.forEach(alert => alert.read = true);
+        displayAlerts();
+    }
+
+    // Show alert settings modal
+    function showAlertSettings() {
+        const modal = document.getElementById('alert-settings-modal');
+        if (modal) modal.style.display = 'block';
+    }
+
+    // Close alert settings modal
+    function closeAlertSettings() {
+        const modal = document.getElementById('alert-settings-modal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    // Handle alert settings form submission
+    function handleAlertSettingsSubmit(event) {
+        event.preventDefault();
+
+        alertSettings = {
+            lowStockThreshold: parseInt(document.getElementById('low-stock-threshold').value),
+            largeChangeThreshold: parseInt(document.getElementById('large-change-threshold').value),
+            notificationMethods: {
+                system: document.querySelector('.notification-methods input[type="checkbox"]:nth-child(1)').checked,
+                email: document.querySelector('.notification-methods input[type="checkbox"]:nth-child(2)').checked,
+                sms: document.querySelector('.notification-methods input[type="checkbox"]:nth-child(3)').checked
+            },
+            checkFrequency: document.getElementById('check-frequency').value
+        };
+
+        // Save settings to localStorage
+        localStorage.setItem('alertSettings', JSON.stringify(alertSettings));
+
+        // Restart alert checking with new settings
+        startAlertChecking();
+
+        // Close modal
+        closeAlertSettings();
+        alert('Đã lưu cài đặt thông báo!');
+    }
+
+    // Update alert settings form with current values
+    function updateAlertSettingsForm() {
+        document.getElementById('low-stock-threshold').value = alertSettings.lowStockThreshold;
+        document.getElementById('large-change-threshold').value = alertSettings.largeChangeThreshold;
+        document.getElementById('check-frequency').value = alertSettings.checkFrequency;
+
+        const checkboxes = document.querySelectorAll('.notification-methods input[type="checkbox"]');
+        checkboxes[0].checked = alertSettings.notificationMethods.system;
+        checkboxes[1].checked = alertSettings.notificationMethods.email;
+        checkboxes[2].checked = alertSettings.notificationMethods.sms;
+    }
+
+    // Start alert checking based on frequency
+    function startAlertChecking() {
+        // Clear existing interval if any
+        if (window.alertCheckInterval) {
+            clearInterval(window.alertCheckInterval);
+        }
+
+        // Set up new checking interval
+        switch (alertSettings.checkFrequency) {
+            case 'realtime':
+                // Check every minute for demo purposes
+                window.alertCheckInterval = setInterval(checkAlerts, 60000);
+                break;
+            case 'hourly':
+                window.alertCheckInterval = setInterval(checkAlerts, 3600000);
+                break;
+            case 'daily':
+                window.alertCheckInterval = setInterval(checkAlerts, 86400000);
+                break;
+            case 'weekly':
+                window.alertCheckInterval = setInterval(checkAlerts, 604800000);
+                break;
+        }
+
+        // Initial check
+        checkAlerts();
+    }
+
+    // Helper function to format alert time
+    function formatAlertTime(timestamp) {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diff = now - date;
+
+        if (diff < 60000) return 'Vừa xong';
+        if (diff < 3600000) return `${Math.floor(diff / 60000)} phút trước`;
+        if (diff < 86400000) return `${Math.floor(diff / 3600000)} giờ trước`;
+        return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+    }
+
+    // Notify user based on settings
+    function notifyUser(alert) {
+        if (alertSettings.notificationMethods.system) {
+            // Show browser notification
+            if (Notification.permission === "granted") {
+                new Notification(alert.title, {
+                    body: alert.message,
+                    icon: '/path/to/icon.png'
+                });
+            }
+        }
+
+        if (alertSettings.notificationMethods.email) {
+            // Send email notification (implement your email service)
+            sendEmailNotification(alert);
+        }
+
+        if (alertSettings.notificationMethods.sms) {
+            // Send SMS notification (implement your SMS service)
+            sendSMSNotification(alert);
+        }
+    }
+
+    // Update unread count
+    function updateUnreadCount() {
+        const unreadCount = alerts.filter(alert => !alert.read).length;
+        // Update UI with unread count (implement as needed)
+    }
+
+    // Initialize alerts when document is ready
+    document.addEventListener('DOMContentLoaded', initializeAlerts);
 });
