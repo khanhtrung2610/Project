@@ -1,179 +1,184 @@
-// Đảm bảo file là module
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
-import * as XLSX from "https://cdn.jsdelivr.net/npm/xlsx/xlsx.mjs";
+document.addEventListener("DOMContentLoaded", function () {
+    const sections = document.querySelectorAll(".section");
+    const menuItems = document.querySelectorAll(".sidebar ul li");
 
-// Cấu hình Supabase
-const SUPABASE_URL = "https://cmggklinznikcdvmdekb.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...";
+    function getElement(selector) {
+        const el = document.querySelector(selector);
+        if (!el) console.error(`❌ Không tìm thấy ${selector}!`);
+        return el;
+    }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const deviceTable = getElement("#devices-table");
+    const transactionTable = getElement("#transaction-table");
+    const paymentTable = getElement("#payment-table");
+    const historyTable = getElement("#history-table");
+    const alertContainer = getElement("#alert-container");
+    const stockChartCanvas = getElement("#stockChart");
 
-document.addEventListener("DOMContentLoaded", () => {
-    setupMenu();
-    fetchDevices();
-    setupModalEvents();
-    document.getElementById("export-excel-btn")?.addEventListener("click", exportToExcel);
-});
+    let stockChartInstance = null;
 
-// 🏷️ Thiết lập menu sidebar
-function setupMenu() {
-    document.querySelectorAll(".menu-item").forEach(item => {
-        item.addEventListener("click", event => {
-            event.preventDefault();
-            showSection(item.getAttribute("data-target"));
+    async function fetchData(endpoint) {
+        try {
+            const res = await fetch(`http://localhost:5001/api/${endpoint}`);
+            if (!res.ok) throw new Error(`Lỗi ${res.status}: ${res.statusText}`);
+            return await res.json();
+        } catch (error) {
+            console.error(`❌ Lỗi tải dữ liệu ${endpoint}:`, error);
+            return null;
+        }
+    }
+
+    async function loadDevices() {
+        if (!deviceTable) return;
+        const devices = await fetchData("devices");
+        if (!devices) return;
+        deviceTable.innerHTML = devices.length
+            ? devices.map(device => `
+                <tr>
+                    <td>${device.id}</td>
+                    <td>${device.name}</td>
+                    <td>${device.quantity}</td>
+                    <td>
+                        <button class="edit-btn" onclick="editDevice(${device.id})">Sửa</button>
+                        <button class="delete-btn" onclick="deleteDevice(${device.id})">Xóa</button>
+                    </td>
+                </tr>
+            `).join("")
+            : "<tr><td colspan='4'>Không có thiết bị nào</td></tr>";
+    }
+
+    async function loadTransactions() {
+        if (!transactionTable) return;
+        const transactions = await fetchData("transactions");
+        if (!transactions) return;
+        transactionTable.innerHTML = transactions.length
+            ? transactions.map(transaction => `
+                <tr>
+                    <td>${transaction.id}</td>
+                    <td>${transaction.time}</td>
+                    <td>${transaction.device}</td>
+                    <td>${transaction.quantity}</td>
+                    <td>${transaction.type}</td>
+                </tr>
+            `).join("")
+            : "<tr><td colspan='5'>Không có giao dịch nào</td></tr>";
+    }
+
+    async function loadPayments() {
+        if (!paymentTable) return;
+        const payments = await fetchData("payments");
+        if (!payments) return;
+        paymentTable.innerHTML = payments.length
+            ? payments.map(payment => `
+                <tr>
+                    <td>${payment.id}</td>
+                    <td>${payment.customer}</td>
+                    <td>${payment.amount.toLocaleString()} VND</td>
+                    <td>${payment.date}</td>
+                    <td>${payment.method}</td>
+                    <td>${payment.status}</td>
+                </tr>
+            `).join("")
+            : "<tr><td colspan='6'>Không có thanh toán nào</td></tr>";
+    }
+
+    async function loadHistory() {
+        if (!historyTable) return;
+        const history = await fetchData("history");
+        if (!history) return;
+        historyTable.innerHTML = history.length
+            ? history.map(record => `
+                <tr>
+                    <td>${record.id}</td>
+                    <td>${record.date}</td>
+                    <td>${record.device}</td>
+                    <td>${record.quantity}</td>
+                    <td>${record.action}</td>
+                </tr>
+            `).join("")
+            : "<tr><td colspan='5'>Không có lịch sử nào</td></tr>";
+    }
+
+    async function loadAlerts() {
+        if (!alertContainer) return;
+        const alerts = await fetchData("alerts");
+        if (!alerts) return;
+        alertContainer.innerHTML = alerts.length
+            ? alerts.map(alert => `<div class="alert">${alert.message}</div>`).join("")
+            : "<div class='alert'>Không có cảnh báo nào</div>";
+    }
+
+    async function loadStatistics() {
+        const stats = await fetchData("statistics");
+        if (!stats) return;
+        updateDashboard(stats);
+    }
+
+    function updateDashboard(stats) {
+        getElement("#total-devices").innerText = stats.totalDevices || 0;
+        getElement("#imported-this-month").innerText = stats.importedThisMonth || 0;
+        getElement("#exported-this-month").innerText = stats.exportedThisMonth || 0;
+        getElement("#low-stock-devices").innerText = stats.lowStockDevices || 0;
+    }
+
+    async function loadCharts() {
+        if (!stockChartCanvas) return;
+        const stats = await fetchData("statistics");
+        if (!stats) return;
+        const ctx = stockChartCanvas.getContext("2d");
+        if (stockChartInstance) {
+            stockChartInstance.destroy();
+            stockChartInstance = null;
+        }
+        stockChartInstance = new Chart(ctx, {
+            type: "bar",
+            data: {
+                labels: ["Tổng thiết bị", "Nhập tháng này", "Xuất tháng này", "Thiết bị ít tồn"],
+                datasets: [{
+                    label: "Thống kê kho",
+                    data: [stats.totalDevices, stats.importedThisMonth, stats.exportedThisMonth, stats.lowStockDevices],
+                    backgroundColor: ["#3498db", "#2ecc71", "#e74c3c", "#f1c40f"],
+                }],
+            },
+            options: {
+                responsive: true,
+                scales: { y: { beginAtZero: true } },
+            },
+        });
+    }
+
+    let debounceTimeout;
+    menuItems.forEach((item) => {
+        item.addEventListener("click", function () {
+            clearTimeout(debounceTimeout);
+            debounceTimeout = setTimeout(() => {
+                menuItems.forEach(i => i.classList.remove("active"));
+                this.classList.add("active");
+                const target = this.dataset.section;
+                sections.forEach(section => section.classList.toggle("active", section.id === target));
+                switch (target) {
+                    case "devices": loadDevices(); break;
+                    case "transactions": loadTransactions(); break;
+                    case "payments": loadPayments(); break;
+                    case "history": loadHistory(); break;
+                    case "alerts": loadAlerts(); break;
+                    case "dashboard": loadStatistics(); loadCharts(); break;
+                }
+            }, 300);
         });
     });
-}
 
-// 🏷️ Hiển thị section tương ứng
-function showSection(sectionId) {
-    document.querySelectorAll(".section").forEach(section => section.style.display = "none");
-    document.getElementById(sectionId)?.style.display = "block";
-}
-
-// 🏷️ Lấy danh sách thiết bị từ Supabase
-async function fetchDevices() {
-    try {
-        const { data, error } = await supabase.from("devices").select("*");
-        if (error) {
-            alert("Lỗi khi lấy dữ liệu từ server. Vui lòng thử lại!");
-            throw error;
-        }
-        displayDevices(data);
-        updateInventoryStats(data);
-    } catch (error) {
-        console.error("Lỗi khi lấy dữ liệu:", error.message);
-    }
-}
-
-// 🏷️ Hiển thị danh sách thiết bị
-function displayDevices(devices) {
-    const tableBody = document.getElementById("device-table-body");
-    if (!tableBody) return;
-    tableBody.innerHTML = devices.length === 0
-        ? `<tr><td colspan="6" style="text-align:center;">Không có thiết bị nào</td></tr>`
-        : devices.map(device => `
-            <tr>
-                <td>${device.id}</td>
-                <td>${device.name}</td>
-                <td>${device.type}</td>
-                <td>${device.quantity}</td>
-                <td>${device.status}</td>
-                <td>
-                    <button class="edit-btn" data-id="${device.id}">✏️ Sửa</button>
-                    <button class="delete-btn" data-id="${device.id}">🗑️ Xóa</button>
-                </td>
-            </tr>`).join("");
-
-    document.querySelectorAll(".edit-btn").forEach(btn => btn.addEventListener("click", openEditForm));
-    document.querySelectorAll(".delete-btn").forEach(btn => btn.addEventListener("click", deleteDevice));
-}
-
-// 🏷️ Mở form nhập thiết bị (thêm/sửa)
-function openForm(isEdit = false, device = {}) {
-    document.getElementById("device-form").reset();
-    document.getElementById("device-id").value = isEdit ? device.id : "";
-    document.getElementById("device-name").value = device.name || "";
-    document.getElementById("device-type").value = device.type || "";
-    document.getElementById("device-quantity").value = device.quantity || "";
-    document.getElementById("device-status").value = device.status || "available";
-    document.getElementById("device-modal").style.display = "block";
-}
-
-// 🏷️ Mở form sửa thiết bị
-function openEditForm(event) {
-    const deviceId = event.target.dataset.id;
-    const row = event.target.closest("tr").children;
-    openForm(true, {
-        id: deviceId,
-        name: row[1].textContent,
-        type: row[2].textContent,
-        quantity: row[3].textContent,
-        status: row[4].textContent
-    });
-}
-
-// 🏷️ Lưu thiết bị (thêm mới hoặc cập nhật)
-async function saveDevice() {
-    const id = document.getElementById("device-id").value;
-    const name = document.getElementById("device-name").value.trim();
-    const type = document.getElementById("device-type").value.trim();
-    const quantity = Number(document.getElementById("device-quantity").value);
-    const status = document.getElementById("device-status").value;
-
-    if (!name || !type || isNaN(quantity) || quantity < 0 || !status) {
-        alert("Vui lòng nhập thông tin hợp lệ!");
-        return;
+    async function loadAllData() {
+        await Promise.all([
+            loadDevices(),
+            loadTransactions(),
+            loadPayments(),
+            loadHistory(),
+            loadAlerts(),
+            loadStatistics(),
+            loadCharts(),
+        ]);
     }
 
-    try {
-        let error;
-        if (id) {
-            ({ error } = await supabase.from("devices").update({ name, type, quantity, status }).eq("id", id));
-        } else {
-            ({ error } = await supabase.from("devices").insert([{ name, type, quantity, status }] ));
-        }
-        if (error) throw error;
-
-        alert(id ? "Cập nhật thiết bị thành công!" : "Thêm thiết bị thành công!");
-        closeModal();
-        fetchDevices();
-    } catch (error) {
-        console.error("Lỗi khi lưu thiết bị:", error.message);
-    }
-}
-
-// 🏷️ Xóa thiết bị
-async function deleteDevice(event) {
-    const deviceId = event.target.dataset.id;
-    if (!confirm("Bạn có chắc chắn muốn xóa thiết bị này không?")) return;
-
-    try {
-        const { error } = await supabase.from("devices").delete().eq("id", deviceId);
-        if (error) throw error;
-        alert("Xóa thiết bị thành công!");
-        fetchDevices();
-    } catch (error) {
-        console.error("Lỗi khi xóa thiết bị:", error.message);
-    }
-}
-
-// 🏷️ Cập nhật số liệu hàng tồn kho
-function updateInventoryStats(devices) {
-    document.getElementById("totalItems").textContent = devices.length;
-    document.getElementById("inventory").textContent = devices.reduce((sum, item) => sum + item.quantity, 0);
-    document.getElementById("transactions").textContent = Math.floor(Math.random() * 100);
-}
-
-// 🏷️ Xuất dữ liệu ra Excel
-function exportToExcel() {
-    supabase.from("devices").select("*").then(({ data, error }) => {
-        if (error) {
-            alert("Lỗi khi lấy dữ liệu để xuất file Excel!");
-            return;
-        }
-
-        const worksheet = XLSX.utils.json_to_sheet(data);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Devices");
-
-        XLSX.writeFile(workbook, "danh_sach_thiet_bi.xlsx");
-        alert("Xuất file Excel thành công!");
-    });
-}
-
-// 🏷️ Đóng modal
-function closeModal() {
-    document.getElementById("device-modal").style.display = "none";
-}
-
-// 🏷️ Cài đặt sự kiện modal
-function setupModalEvents() {
-    document.getElementById("device-modal").addEventListener("click", (e) => {
-        if (e.target.classList.contains("modal")) closeModal();
-    });
-
-    document.getElementById("add-device-btn")?.addEventListener("click", () => openForm());
-    document.getElementById("save-device-btn")?.addEventListener("click", saveDevice);
-    document.getElementById("close-modal-btn")?.addEventListener("click", closeModal);
-}
+    loadAllData();
+});

@@ -3,114 +3,126 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý Kho</title>
+    <title>Hệ Thống Quản Lý Kho</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-
-    <!-- Sidebar -->
-    <nav class="sidebar">
-        <h2>📦 Quản lý Kho</h2>
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <h2>Quản Lý Kho</h2>
         <ul>
-            <li><a href="#" data-target="dashboard" class="menu-item active">📊 Dashboard</a></li>
-            <li><a href="#" data-target="devices" class="menu-item">📦 Quản lý Thiết bị</a></li>
-            <li><a href="#" data-target="inventory" class="menu-item">📋 Quản lý kho hàng</a></li>
-            <li><a href="#" data-target="reports" class="menu-item">📈 Báo cáo & Thống kê</a></li>
-            <li><a href="#" data-target="payments" class="menu-item">💳 Quản lý Thanh toán</a></li>
-            <li><a href="#" data-target="categories" class="menu-item">📁 Danh mục Thiết bị</a></li>
+            <li class="active" data-section="dashboard">🏠 Dashboard</li>
+            <li data-section="devices">📦 Danh mục thiết bị</li>
+            <li data-section="transactions">📥📤 Nhập/Xuất kho</li>
+            <li data-section="history">📜 Lịch sử giao dịch</li>
+            <li data-section="alerts">⚠️ Cảnh báo</li>
+            <li data-section="payments">💰 Quản lý thanh toán</li>
         </ul>
-    </nav>
+    </div>
 
-    <!-- Main Content -->
-    <main class="main-content">
-        <!-- Dashboard -->
-        <section id="dashboard" class="section active">
-            <h2>📊 Thống kê kho</h2>
-            <p><strong>Tổng số thiết bị:</strong> <span id="totalItems">0</span></p>
-            <p><strong>Số lượng hàng tồn kho:</strong> <span id="inventory">0</span></p>
-            <p><strong>Số giao dịch:</strong> <span id="transactions">0</span></p>
-        </section>
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        <!-- DASHBOARD -->
+        <div class="section active" id="dashboard">
+            <h2>📊 Dashboard</h2>
+            <div class="dashboard-cards">
+                <div class="card">Tổng thiết bị: <span id="total-devices">0</span></div>
+                <div class="card">Nhập tháng này: <span id="imported-this-month">0</span></div>
+                <div class="card">Xuất tháng này: <span id="exported-this-month">0</span></div>
+                <div class="card">Thiết bị sắp hết: <span id="low-stock-devices">0</span></div>
+            </div>
+            <canvas id="stockChart"></canvas>
+        </div>
 
-        <!-- Quản lý thiết bị -->
-        <section id="devices" class="section">
-            <h2>📦 Danh sách Thiết bị</h2>
-            <button id="add-device-btn">➕ Thêm Thiết bị</button>
-            <table border="1">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Tên</th>
-                        <th>Loại</th>
-                        <th>Số lượng</th>
-                        <th>Trạng thái</th>
-                        <th>Hành động</th>
-                    </tr>
-                </thead>
-                <tbody id="device-table-body">
-                    <!-- Dữ liệu từ Supabase sẽ được thêm vào đây -->
-                </tbody>
-            </table>
-        </section>
+        <!-- DANH MỤC THIẾT BỊ -->
+        <div class="section" id="devices">
+            <h2>📦 Danh Mục Thiết Bị</h2>
+            <button class="add-btn">+ Thêm Thiết Bị</button>
+            <button class="import-btn">📥 Import Excel</button>
+            <button class="export-btn">📤 Xuất Excel</button>
+            <button class="pdf-btn">📄 Xuất PDF</button>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mã</th>
+                            <th>Tên</th>
+                            <th>Số lượng</th>
+                            <th>Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="devices-table"></tbody>
+                </table>
+            </div>
+        </div>
 
-        <!-- Quản lý kho hàng -->
-        <section id="inventory" class="section">
-            <h2>📋 Quản lý kho hàng</h2>
-            <p>Danh sách nhập xuất hàng theo thời gian thực.</p>
-            <div id="inventory-list"></div>
-        </section>
+        <!-- NHẬP/XUẤT KHO -->
+        <div class="section" id="transactions">
+            <h2>📥📤 Nhập/Xuất Kho</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Thời gian</th>
+                            <th>Thiết bị</th>
+                            <th>Số lượng</th>
+                            <th>Loại</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transaction-table"></tbody>
+                </table>
+            </div>
+        </div>
 
-        <!-- Báo cáo & Thống kê -->
-        <section id="reports" class="section">
-            <h2>📈 Báo cáo & Thống kê</h2>
-            <p>Theo dõi tình trạng kho và doanh thu.</p>
-            <div id="report-content"></div>
-        </section>
+        <!-- LỊCH SỬ GIAO DỊCH -->
+        <div class="section" id="history">
+            <h2>📜 Lịch Sử Giao Dịch</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Ngày</th>
+                            <th>Thiết bị</th>
+                            <th>Số lượng</th>
+                            <th>Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-table"></tbody>
+                </table>
+            </div>
+        </div>
 
-        <!-- Quản lý Thanh toán -->
-        <section id="payments" class="section">
-            <h2>💳 Quản lý Thanh toán</h2>
-            <p>Theo dõi lịch sử thanh toán và công nợ.</p>
-            <div id="payment-list"></div>
-        </section>
+        <!-- CẢNH BÁO & THÔNG BÁO -->
+        <div class="section" id="alerts">
+            <h2>⚠️ Cảnh Báo & Thông Báo</h2>
+            <div class="table-container" id="alert-container"></div>
+        </div>
 
-        <!-- Danh mục Thiết bị -->
-        <section id="categories" class="section">
-            <h2>📁 Danh mục Thiết bị</h2>
-            <p>Danh sách các loại thiết bị trong kho.</p>
-            <div id="category-list"></div>
-        </section>
-    </main>
-
-    <!-- Form thêm/sửa thiết bị -->
-    <div id="device-modal" class="modal">
-        <div class="modal-content">
-            <h3>🔧 Thêm/Sửa Thiết Bị</h3>
-            <form id="device-form">
-                <input type="hidden" id="device-id">
-                <label for="device-name">Tên thiết bị:</label>
-                <input type="text" id="device-name" required>
-
-                <label for="device-type">Loại thiết bị:</label>
-                <input type="text" id="device-type" required>
-
-                <label for="device-quantity">Số lượng:</label>
-                <input type="number" id="device-quantity" required>
-
-                <label for="device-status">Trạng thái:</label>
-                <select id="device-status">
-                    <option value="available">Còn hàng</option>
-                    <option value="out_of_stock">Hết hàng</option>
-                    <option value="maintenance">Bảo trì</option>
-                </select>
-
-                <button type="button" id="save-device-btn">💾 Lưu</button>
-                <button type="button" id="close-modal-btn">❌ Đóng</button>
-            </form>
+        <!-- QUẢN LÝ THANH TOÁN -->
+        <div class="section" id="payments">
+            <h2>💰 Quản Lý Thanh Toán</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Khách hàng</th>
+                            <th>Số tiền</th>
+                            <th>Ngày</th>
+                            <th>Phương thức</th>
+                            <th>Trạng thái</th>
+                        </tr>
+                    </thead>
+                    <tbody id="payment-table"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
-    <!-- ✅ Nhúng script dưới dạng module -->
-    <script type="module" src="script.js"></script>
-
+    <!-- SCRIPT -->
+    <script src="script.js"></script>
 </body>
 </html>

@@ -6,7 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import HoatDong from "./pages/HoatDong";
 import ThongKe from "./pages/ThongKe";
 import ThanhToan from "./pages/ThanhToan";
-import DanhMuc from "./pages/DanhMuc";
+import DanhMuc from "./pages/DanhMuc";                                          
 import "./index.css";
 
 const App = () => {
