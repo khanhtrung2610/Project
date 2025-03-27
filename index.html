@@ -103,7 +103,22 @@
 
         <!-- QUẢN LÝ THANH TOÁN -->
         <div class="section" id="payments">
-            <h2>💰 Quản Lý Thanh Toán</h2>
+            <div class="section-header">
+                <h2>💰 Quản Lý Thanh Toán</h2>
+                <div class="action-buttons">
+                    <button id="add-payment-btn" onclick="showAddPaymentModal()" class="btn primary-btn">
+                        <span class="btn-icon">➕</span> Thêm thanh toán
+                    </button>
+                    <button id="import-payment-btn" class="btn">
+                        <span class="btn-icon">📥</span> Import Excel
+                    </button>
+                    <button id="export-payment-btn" class="btn">
+                        <span class="btn-icon">📤</span> Export Excel
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bảng thanh toán -->
             <div class="table-container">
                 <table>
                     <thead>
@@ -114,11 +129,57 @@
                             <th>Ngày</th>
                             <th>Phương thức</th>
                             <th>Trạng thái</th>
+                            <th>Thao tác</th>
                         </tr>
                     </thead>
                     <tbody id="payment-table"></tbody>
                 </table>
             </div>
+
+            <!-- Modal thêm/sửa thanh toán -->
+            <div id="payment-modal" class="modal">
+                <div class="modal-content">
+                    <h2 id="payment-modal-title">Thêm thanh toán mới</h2>
+                    <form id="payment-form" onsubmit="handlePaymentSubmit(event)">
+                        <div class="form-group">
+                            <label for="customer">Khách hàng *</label>
+                            <input type="text" id="customer" name="customer" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="amount">Số tiền *</label>
+                            <input type="number" id="amount" name="amount" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="method">Phương thức thanh toán *</label>
+                            <select id="method" name="method" required>
+                                <option value="cash">Tiền mặt</option>
+                                <option value="bank">Chuyển khoản</option>
+                                <option value="card">Thẻ tín dụng</option>
+                                <option value="e-wallet">Ví điện tử</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="status">Trạng thái *</label>
+                            <select id="status" name="status" required>
+                                <option value="completed">Đã thanh toán</option>
+                                <option value="pending">Chờ xử lý</option>
+                                <option value="failed">Thất bại</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="note">Ghi chú</label>
+                            <textarea id="note" name="note" rows="3"></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" onclick="document.getElementById('payment-modal').style.display='none'" class="btn">Hủy</button>
+                            <button type="submit" class="btn primary-btn">Lưu</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Modal xem chi tiết thanh toán -->
+            <div id="view-payment-modal" class="modal"></div>
         </div>
     </div>
 
