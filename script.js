@@ -1,883 +1,576 @@
-document.addEventListener("DOMContentLoaded", function () {
-    const sections = document.querySelectorAll(".section");
-    const menuItems = document.querySelectorAll(".sidebar ul li");
+// Khởi tạo biến toàn cục
+let currentSection = 'dashboard';
+let devices = [];
+let alerts = [];
+let currentPage = 1;
+const itemsPerPage = 10;
 
-    function getElement(selector) {
-        const el = document.querySelector(selector);
-        if (!el) console.error(`❌ Không tìm thấy ${selector}!`);
-        return el;
+// Mock data cho testing
+const mockDevices = [
+    { id: 'D001', name: 'Laptop Dell XPS', category: 'laptop', quantity: 15, price: 25000000, threshold: 5 },
+    { id: 'D002', name: 'Máy in HP LaserJet', category: 'printer', quantity: 8, price: 5000000, threshold: 3 },
+    { id: 'D003', name: 'Router Cisco', category: 'network', quantity: 12, price: 2000000, threshold: 4 }
+];
+
+const mockAlerts = [
+    {
+        id: 'A001',
+        type: 'low-stock',
+        severity: 'high',
+        title: 'Laptop Dell XPS sắp hết hàng',
+        message: 'Số lượng hiện tại: 2, dưới ngưỡng cảnh báo',
+        timestamp: new Date(),
+        read: false
+    },
+    {
+        id: 'A002',
+        type: 'inventory',
+        severity: 'medium',
+        title: 'Tồn kho cao: Máy in HP',
+        message: 'Số lượng tồn kho vượt quá 30 ngày',
+        timestamp: new Date(),
+        read: false
     }
+];
 
-    const deviceTable = getElement("#devices-table");
-    const transactionTable = getElement("#transaction-table");
-    const paymentTable = getElement("#payment-table");
-    const historyTable = getElement("#history-table");
-    const alertContainer = getElement("#alert-container");
-    const stockChartCanvas = getElement("#stockChart");
+// Khởi tạo ứng dụng
+document.addEventListener('DOMContentLoaded', () => {
+    initializeNavigation();
+    loadInitialData();
+    initializeCharts();
+});
 
-    let stockChartInstance = null;
-
-    // Mảng lưu trữ dữ liệu thanh toán
-    let payments = [];
-
-    // Transaction Management
-    let selectedProducts = [];
-    let transactionType = 'import';
-
-    // Alert Management
-    let alerts = [];
-    let alertSettings = {
-        lowStockThreshold: 10,
-        largeChangeThreshold: 50,
-        notificationMethods: {
-            system: true,
-            email: true,
-            sms: false
-        },
-        checkFrequency: 'realtime'
-    };
-
-    async function fetchData(endpoint) {
-        try {
-            const res = await fetch(`http://localhost:5001/api/${endpoint}`);
-            if (!res.ok) throw new Error(`Lỗi ${res.status}: ${res.statusText}`);
-            return await res.json();
-        } catch (error) {
-            console.error(`❌ Lỗi tải dữ liệu ${endpoint}:`, error);
-            return null;
-        }
-    }
-
-    async function loadDevices() {
-        if (!deviceTable) return;
-        const devices = await fetchData("devices");
-        if (!devices) return;
-        deviceTable.innerHTML = devices.length
-            ? devices.map(device => `
-                <tr>
-                    <td>${device.id}</td>
-                    <td>${device.name}</td>
-                    <td>${device.quantity}</td>
-                    <td>
-                        <button class="edit-btn" onclick="editDevice(${device.id})">Sửa</button>
-                        <button class="delete-btn" onclick="deleteDevice(${device.id})">Xóa</button>
-                    </td>
-                </tr>
-            `).join("")
-            : "<tr><td colspan='4'>Không có thiết bị nào</td></tr>";
-    }
-
-    async function loadTransactions() {
-        if (!transactionTable) return;
-        const transactions = await fetchData("transactions");
-        if (!transactions) return;
-        transactionTable.innerHTML = transactions.length
-            ? transactions.map(transaction => `
-                <tr>
-                    <td>${transaction.id}</td>
-                    <td>${transaction.time}</td>
-                    <td>${transaction.device}</td>
-                    <td>${transaction.quantity}</td>
-                    <td>${transaction.type}</td>
-                </tr>
-            `).join("")
-            : "<tr><td colspan='5'>Không có giao dịch nào</td></tr>";
-    }
-
-    async function loadPayments() {
-        if (!paymentTable) return;
-        
-        paymentTable.innerHTML = payments.length
-            ? payments.map(payment => `
-                <tr data-payment-id="${payment.id}">
-                    <td>${payment.id}</td>
-                    <td>${payment.customer}</td>
-                    <td>${payment.amount.toLocaleString()} VND</td>
-                    <td>${formatDate(payment.date)}</td>
-                    <td>${payment.method}</td>
-                    <td>
-                        <span class="status-badge ${payment.status}">${payment.status}</span>
-                    </td>
-                    <td class="actions">
-                        <button onclick="viewPayment('${payment.id}')" class="btn view-btn">👁️</button>
-                        <button onclick="editPayment('${payment.id}')" class="btn edit-btn">✏️</button>
-                        <button onclick="deletePayment('${payment.id}')" class="btn delete-btn">🗑️</button>
-                    </td>
-                </tr>
-            `).join("")
-            : "<tr><td colspan='7'>Không có thanh toán nào</td></tr>";
-    }
-
-    async function loadHistory() {
-        if (!historyTable) return;
-        const history = await fetchData("history");
-        if (!history) return;
-        historyTable.innerHTML = history.length
-            ? history.map(record => `
-                <tr>
-                    <td>${record.id}</td>
-                    <td>${record.date}</td>
-                    <td>${record.device}</td>
-                    <td>${record.quantity}</td>
-                    <td>${record.action}</td>
-                </tr>
-            `).join("")
-            : "<tr><td colspan='5'>Không có lịch sử nào</td></tr>";
-    }
-
-    async function loadAlerts() {
-        if (!alertContainer) return;
-        const alerts = await fetchData("alerts");
-        if (!alerts) return;
-        alertContainer.innerHTML = alerts.length
-            ? alerts.map(alert => `<div class="alert">${alert.message}</div>`).join("")
-            : "<div class='alert'>Không có cảnh báo nào</div>";
-    }
-
-    async function loadStatistics() {
-        const stats = await fetchData("statistics");
-        if (!stats) return;
-        updateDashboard(stats);
-    }
-
-    function updateDashboard(stats) {
-        getElement("#total-devices").innerText = stats.totalDevices || 0;
-        getElement("#imported-this-month").innerText = stats.importedThisMonth || 0;
-        getElement("#exported-this-month").innerText = stats.exportedThisMonth || 0;
-        getElement("#low-stock-devices").innerText = stats.lowStockDevices || 0;
-    }
-
-    async function loadCharts() {
-        if (!stockChartCanvas) return;
-        const stats = await fetchData("statistics");
-        if (!stats) return;
-        const ctx = stockChartCanvas.getContext("2d");
-        if (stockChartInstance) {
-            stockChartInstance.destroy();
-            stockChartInstance = null;
-        }
-        stockChartInstance = new Chart(ctx, {
-            type: "bar",
-            data: {
-                labels: ["Tổng thiết bị", "Nhập tháng này", "Xuất tháng này", "Thiết bị ít tồn"],
-                datasets: [{
-                    label: "Thống kê kho",
-                    data: [stats.totalDevices, stats.importedThisMonth, stats.exportedThisMonth, stats.lowStockDevices],
-                    backgroundColor: ["#3498db", "#2ecc71", "#e74c3c", "#f1c40f"],
-                }],
-            },
-            options: {
-                responsive: true,
-                scales: { y: { beginAtZero: true } },
-            },
-        });
-    }
-
-    let debounceTimeout;
-    menuItems.forEach((item) => {
-        item.addEventListener("click", function () {
-            clearTimeout(debounceTimeout);
-            debounceTimeout = setTimeout(() => {
-                menuItems.forEach(i => i.classList.remove("active"));
-                this.classList.add("active");
-                const target = this.dataset.section;
-                sections.forEach(section => section.classList.toggle("active", section.id === target));
-                switch (target) {
-                    case "devices": loadDevices(); break;
-                    case "transactions": loadTransactions(); break;
-                    case "payments": loadPayments(); break;
-                    case "history": loadHistory(); break;
-                    case "alerts": loadAlerts(); break;
-                    case "dashboard": loadStatistics(); loadCharts(); break;
-                }
-            }, 300);
+// Xử lý Navigation
+function initializeNavigation() {
+    const menuItems = document.querySelectorAll('.sidebar ul li');
+    menuItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const sectionId = item.getAttribute('data-section');
+            switchSection(sectionId);
         });
     });
+}
 
-    async function loadAllData() {
-        await Promise.all([
-            loadDevices(),
-            loadTransactions(),
-            loadPayments(),
-            loadHistory(),
-            loadAlerts(),
-            loadStatistics(),
-            loadCharts(),
-        ]);
+function switchSection(sectionId) {
+    // Ẩn section hiện tại
+    document.querySelector(`.section.active`)?.classList.remove('active');
+    document.querySelector(`.sidebar ul li.active`)?.classList.remove('active');
+
+    // Hiển thị section mới
+    document.querySelector(`#${sectionId}`)?.classList.add('active');
+    document.querySelector(`[data-section="${sectionId}"]`)?.classList.add('active');
+
+    // Cập nhật section hiện tại
+    currentSection = sectionId;
+    loadSectionData(sectionId);
+}
+
+// Load dữ liệu
+async function loadInitialData() {
+    try {
+        // Trong môi trường development, sử dụng mock data
+        devices = mockDevices;
+        alerts = mockAlerts;
+
+        // Cập nhật UI
+        updateDashboardStats();
+        updateDevicesTable();
+        updateAlerts();
+    } catch (error) {
+        console.error('Error loading initial data:', error);
+        showNotification('Không thể tải dữ liệu ban đầu', 'error');
     }
+}
 
-    loadAllData();
-
-    // Hàm định dạng ngày tháng
-    function formatDate(dateString) {
-        const date = new Date(dateString);
-        return `${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')} ${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+async function loadSectionData(section) {
+    try {
+        switch (section) {
+            case 'dashboard':
+                updateDashboardStats();
+                updateCharts();
+                break;
+            case 'devices':
+                updateDevicesTable();
+                break;
+            case 'alerts':
+                updateAlerts();
+                break;
+            // Thêm các section khác khi cần
+        }
+    } catch (error) {
+        console.error(`Error loading ${section} data:`, error);
+        showNotification(`Không thể tải dữ liệu cho ${section}`, 'error');
     }
+}
 
-    // Hàm hiển thị modal thêm thanh toán mới
-    window.showAddPaymentModal = function() {
-        const modal = document.getElementById('payment-modal');
-        const form = document.getElementById('payment-form');
-        const title = document.getElementById('payment-modal-title');
+// Xử lý Dashboard
+function updateDashboardStats() {
+    // Cập nhật các thống kê
+    updateElement('total-devices', devices.length);
+    updateElement('imported-this-month', 20); // Mock data
+    updateElement('exported-this-month', 10); // Mock data
+    updateElement('low-stock-devices', devices.filter(d => d.quantity <= d.threshold).length);
+}
+
+// Xử lý Devices
+function updateDevicesTable() {
+    const tbody = document.querySelector('#devices-table');
+    if (!tbody) return;
+
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    const pageDevices = devices.slice(start, end);
+
+    tbody.innerHTML = pageDevices.map(device => `
+        <tr>
+            <td>${device.id}</td>
+            <td>${device.name}</td>
+            <td>${device.category}</td>
+            <td>${device.quantity}</td>
+            <td>${formatCurrency(device.price)}</td>
+            <td>
+                <span class="status ${getDeviceStatus(device)}">
+                    ${getStatusText(device)}
+                </span>
+            </td>
+            <td>
+                <button onclick="viewDevice('${device.id}')" class="btn view-btn">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button onclick="editDevice('${device.id}')" class="btn edit-btn">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button onclick="deleteDevice('${device.id}')" class="btn delete-btn">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+
+    updatePagination();
+}
+
+// Xử lý Alerts
+function updateAlerts() {
+    const alertTypes = ['low-stock', 'inventory'];
+    
+    alertTypes.forEach(type => {
+        const container = document.getElementById(`${type}-alerts`);
+        if (!container) return;
+
+        const typeAlerts = alerts.filter(a => a.type === type);
         
-        if (!modal || !form || !title) return;
-        
-        title.textContent = 'Thêm thanh toán mới';
-        form.reset();
-        form.dataset.mode = 'add';
-        delete form.dataset.paymentId;
-        
-        modal.style.display = 'block';
-    }
-
-    // Hàm xử lý submit form thanh toán
-    window.handlePaymentSubmit = async function(event) {
-        event.preventDefault();
-        
-        const form = event.target;
-        const mode = form.dataset.mode;
-        const paymentId = form.dataset.paymentId;
-        
-        const formData = {
-            customer: form.customer.value,
-            amount: parseInt(form.amount.value),
-            method: form.method.value,
-            status: form.status.value,
-            note: form.note.value,
-            date: new Date().toISOString()
-        };
-
-        try {
-            if (mode === 'add') {
-                // Thêm mới
-                formData.id = 'PAY' + Date.now();
-                payments.push(formData);
-            } else {
-                // Cập nhật
-                const index = payments.findIndex(p => p.id === paymentId);
-                if (index === -1) throw new Error('Không tìm thấy thanh toán');
-                payments[index] = { ...payments[index], ...formData };
-            }
-            
-            // Đóng modal
-            const modal = document.getElementById('payment-modal');
-            if (modal) modal.style.display = 'none';
-            
-            // Tải lại danh sách
-            await loadPayments();
-            alert(mode === 'add' ? 'Thêm thanh toán thành công!' : 'Cập nhật thanh toán thành công!');
-        } catch (error) {
-            console.error('Lỗi:', error);
-            alert('Có lỗi xảy ra khi lưu thanh toán!');
-        }
-    }
-
-    // Hàm xem chi tiết thanh toán
-    window.viewPayment = async function(id) {
-        try {
-            const payment = payments.find(p => p.id === id);
-            if (!payment) {
-                throw new Error('Không tìm thấy thanh toán');
-            }
-            
-            // Hiển thị modal xem chi tiết
-            const modal = document.getElementById('view-payment-modal');
-            if (!modal) return;
-            
-            modal.innerHTML = `
-                <div class="modal-content">
-                    <h2>Chi tiết thanh toán</h2>
-                    <div class="payment-details">
-                        <p><strong>Mã GD:</strong> ${payment.id}</p>
-                        <p><strong>Khách hàng:</strong> ${payment.customer}</p>
-                        <p><strong>Số tiền:</strong> ${payment.amount.toLocaleString()} VND</p>
-                        <p><strong>Thời gian:</strong> ${formatDate(payment.date)}</p>
-                        <p><strong>Phương thức:</strong> ${payment.method}</p>
-                        <p><strong>Trạng thái:</strong> ${payment.status}</p>
-                        <p><strong>Ghi chú:</strong> ${payment.note || '-'}</p>
-                    </div>
-                    <button onclick="closeViewModal()" class="btn">Đóng</button>
-                </div>
-            `;
-            
-            modal.style.display = 'block';
-        } catch (error) {
-            console.error('Lỗi:', error);
-            alert('Không thể tải thông tin thanh toán!');
-        }
-    }
-
-    // Hàm sửa thanh toán
-    window.editPayment = async function(id) {
-        try {
-            const payment = payments.find(p => p.id === id);
-            if (!payment) {
-                throw new Error('Không tìm thấy thanh toán');
-            }
-            
-            // Hiển thị modal sửa
-            const modal = document.getElementById('payment-modal');
-            const form = document.getElementById('payment-form');
-            const title = document.getElementById('payment-modal-title');
-            
-            if (!modal || !form || !title) return;
-            
-            title.textContent = 'Sửa thanh toán';
-            form.dataset.mode = 'edit';
-            form.dataset.paymentId = id;
-            
-            // Điền thông tin vào form
-            form.customer.value = payment.customer;
-            form.amount.value = payment.amount;
-            form.method.value = payment.method;
-            form.status.value = payment.status;
-            form.note.value = payment.note || '';
-            
-            modal.style.display = 'block';
-        } catch (error) {
-            console.error('Lỗi:', error);
-            alert('Không thể tải thông tin thanh toán!');
-        }
-    }
-
-    // Hàm xóa thanh toán
-    window.deletePayment = async function(id) {
-        if (!confirm('Bạn có chắc muốn xóa thanh toán này?')) return;
-        
-        try {
-            const index = payments.findIndex(p => p.id === id);
-            if (index === -1) {
-                throw new Error('Không tìm thấy thanh toán');
-            }
-            
-            // Xóa thanh toán khỏi mảng
-            payments.splice(index, 1);
-            
-            // Cập nhật UI
-            await loadPayments();
-            alert('Xóa thanh toán thành công!');
-        } catch (error) {
-            console.error('Lỗi:', error);
-            alert('Có lỗi xảy ra khi xóa thanh toán!');
-        }
-    }
-
-    // Hàm đóng modal xem chi tiết
-    window.closeViewModal = function() {
-        const modal = document.getElementById('view-payment-modal');
-        if (modal) modal.style.display = 'none';
-    }
-
-    // Thêm dữ liệu mẫu
-    payments.push({
-        id: 'PAY001',
-        customer: 'Công ty A',
-        amount: 5000000,
-        date: '2025-03-20T13:52:00',
-        method: 'Chuyển khoản',
-        status: 'completed',
-        note: 'Thanh toán đơn hàng'
-    });
-
-    // Switch between import/export
-    document.querySelectorAll('.transaction-type button').forEach(button => {
-        button.addEventListener('click', () => {
-            document.querySelector('.transaction-type button.active').classList.remove('active');
-            button.classList.add('active');
-            transactionType = button.dataset.type;
-            updateSupplierLabel();
-        });
-    });
-
-    // Update supplier/receiver label based on transaction type
-    function updateSupplierLabel() {
-        const label = document.querySelector('label[for="supplier"]');
-        label.textContent = transactionType === 'import' ? 'Nhà cung cấp' : 'Người nhận';
-    }
-
-    // Add product to the list
-    function addProduct() {
-        const deviceSelect = document.getElementById('device-select');
-        const quantity = document.getElementById('quantity');
-        
-        if (!deviceSelect.value || !quantity.value || quantity.value < 1) {
-            alert('Vui lòng chọn thiết bị và nhập số lượng hợp lệ');
-            return;
-        }
-
-        const device = deviceSelect.options[deviceSelect.selectedIndex];
-        const product = {
-            id: deviceSelect.value,
-            name: device.text,
-            quantity: parseInt(quantity.value),
-            unit: 'Cái' // You can make this dynamic based on device type
-        };
-
-        // Check if product already exists
-        const existingProduct = selectedProducts.find(p => p.id === product.id);
-        if (existingProduct) {
-            existingProduct.quantity += product.quantity;
-            updateProductsList();
-        } else {
-            selectedProducts.push(product);
-            updateProductsList();
-        }
-
-        // Reset inputs
-        deviceSelect.value = '';
-        quantity.value = '';
-        updateTotalItems();
-    }
-
-    // Update the products table
-    function updateProductsList() {
-        const tbody = document.getElementById('selected-products-list');
-        tbody.innerHTML = '';
-
-        selectedProducts.forEach((product, index) => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${product.id}</td>
-                <td>${product.name}</td>
-                <td>${product.quantity}</td>
-                <td>${product.unit}</td>
-                <td>
-                    <i class="fas fa-times remove-product" onclick="removeProduct(${index})"></i>
-                </td>
-            `;
-            tbody.appendChild(tr);
-        });
-    }
-
-    // Remove product from the list
-    function removeProduct(index) {
-        selectedProducts.splice(index, 1);
-        updateProductsList();
-        updateTotalItems();
-    }
-
-    // Update total items count
-    function updateTotalItems() {
-        const total = selectedProducts.reduce((sum, product) => sum + product.quantity, 0);
-        document.getElementById('total-items').textContent = total;
-    }
-
-    // Handle transaction submission
-    document.querySelector('.complete-transaction').addEventListener('click', async () => {
-        const warehouse = document.getElementById('warehouse').value;
-        const transactionDate = document.getElementById('transaction-date').value;
-        const supplier = document.getElementById('supplier').value;
-        const notes = document.getElementById('notes').value;
-
-        if (!warehouse || !transactionDate || !supplier || selectedProducts.length === 0) {
-            alert('Vui lòng điền đầy đủ thông tin và chọn ít nhất một sản phẩm');
-            return;
-        }
-
-        const transaction = {
-            type: transactionType,
-            warehouse,
-            date: transactionDate,
-            supplier,
-            notes,
-            products: selectedProducts
-        };
-
-        try {
-            const response = await fetch('/api/transactions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(transaction)
-            });
-
-            if (response.ok) {
-                alert('Giao dịch đã được lưu thành công!');
-                resetForm();
-            } else {
-                throw new Error('Có lỗi xảy ra');
-            }
-        } catch (error) {
-            alert('Không thể lưu giao dịch: ' + error.message);
-        }
-    });
-
-    // Save transaction as draft
-    document.querySelector('.save-draft').addEventListener('click', () => {
-        const transaction = {
-            type: transactionType,
-            warehouse: document.getElementById('warehouse').value,
-            date: document.getElementById('transaction-date').value,
-            supplier: document.getElementById('supplier').value,
-            notes: document.getElementById('notes').value,
-            products: selectedProducts,
-            status: 'draft'
-        };
-
-        // Save to localStorage
-        const drafts = JSON.parse(localStorage.getItem('transactionDrafts') || '[]');
-        drafts.push(transaction);
-        localStorage.setItem('transactionDrafts', JSON.stringify(drafts));
-        alert('Đã lưu nháp thành công!');
-    });
-
-    // Reset form
-    function resetForm() {
-        document.getElementById('warehouse').value = '';
-        document.getElementById('transaction-date').value = '';
-        document.getElementById('supplier').value = '';
-        document.getElementById('notes').value = '';
-        selectedProducts = [];
-        updateProductsList();
-        updateTotalItems();
-    }
-
-    // Navigation
-    document.addEventListener('DOMContentLoaded', () => {
-        // Get all menu items and sections
-        const menuItems = document.querySelectorAll('.sidebar ul li');
-        const sections = document.querySelectorAll('.section');
-
-        // Show dashboard by default
-        document.getElementById('dashboard').classList.add('active');
-        menuItems[0].classList.add('active');
-
-        // Add click event to menu items
-        menuItems.forEach(item => {
-            item.addEventListener('click', () => {
-                // Remove active class from all menu items and sections
-                menuItems.forEach(i => i.classList.remove('active'));
-                sections.forEach(s => s.classList.remove('active'));
-
-                // Add active class to clicked menu item
-                item.classList.add('active');
-
-                // Show corresponding section
-                const sectionId = item.getAttribute('data-section');
-                document.getElementById(sectionId).classList.add('active');
-            });
-        });
-    });
-
-    // Initialize alerts
-    function initializeAlerts() {
-        // Load alert settings from localStorage
-        const savedSettings = localStorage.getItem('alertSettings');
-        if (savedSettings) {
-            alertSettings = JSON.parse(savedSettings);
-            updateAlertSettingsForm();
-        }
-
-        // Add event listeners for alert filters
-        document.querySelectorAll('.alert-type-filters .filter-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelector('.alert-type-filters .filter-btn.active').classList.remove('active');
-                btn.classList.add('active');
-                filterAlerts();
-            });
-        });
-
-        document.querySelectorAll('.alert-severity-filters .filter-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelector('.alert-severity-filters .filter-btn.active').classList.remove('active');
-                btn.classList.add('active');
-                filterAlerts();
-            });
-        });
-
-        // Initialize alert settings form
-        const alertSettingsForm = document.getElementById('alert-settings-form');
-        if (alertSettingsForm) {
-            alertSettingsForm.addEventListener('submit', handleAlertSettingsSubmit);
-        }
-
-        // Start alert checking based on frequency
-        startAlertChecking();
-    }
-
-    // Check for alerts based on current inventory
-    function checkAlerts() {
-        const devices = []; // This should be your actual devices data
-        const transactions = []; // This should be your actual transactions data
-
-        // Check for low stock
-        devices.forEach(device => {
-            if (device.quantity <= alertSettings.lowStockThreshold) {
-                createAlert({
-                    type: 'low-stock',
-                    severity: device.quantity <= alertSettings.lowStockThreshold / 2 ? 'high' : 'medium',
-                    title: `Sắp hết hàng: ${device.name}`,
-                    message: `Số lượng tồn kho: ${device.quantity} (Dưới ngưỡng ${alertSettings.lowStockThreshold})`,
-                    deviceId: device.id
-                });
-            }
-        });
-
-        // Check for large changes
-        transactions.forEach(transaction => {
-            const changePercent = (transaction.quantity / getDeviceTotalQuantity(transaction.deviceId)) * 100;
-            if (changePercent >= alertSettings.largeChangeThreshold) {
-                createAlert({
-                    type: 'transaction',
-                    severity: 'high',
-                    title: `Thay đổi lớn: ${transaction.deviceName}`,
-                    message: `Thay đổi ${changePercent.toFixed(1)}% trong một giao dịch`,
-                    transactionId: transaction.id
-                });
-            }
-        });
-
-        // Update UI
-        displayAlerts();
-    }
-
-    // Create new alert
-    function createAlert(alertData) {
-        const alert = {
-            id: 'ALT' + Date.now(),
-            timestamp: new Date().toISOString(),
-            read: false,
-            ...alertData
-        };
-
-        alerts.unshift(alert);
-        notifyUser(alert);
-    }
-
-    // Display alerts in UI
-    function displayAlerts() {
-        const containers = {
-            'low-stock': document.getElementById('low-stock-alerts'),
-            'inventory': document.getElementById('inventory-alerts'),
-            'transaction': document.getElementById('transaction-alerts'),
-            'system': document.getElementById('system-alerts')
-        };
-
-        // Clear existing alerts
-        Object.values(containers).forEach(container => {
-            if (container) container.innerHTML = '';
-        });
-
-        // Group and display alerts
-        const filteredAlerts = filterAlerts();
-        filteredAlerts.forEach(alert => {
-            const container = containers[alert.type];
-            if (!container) return;
-
-            const alertElement = createAlertElement(alert);
-            container.appendChild(alertElement);
-        });
-
-        // Update unread count
-        updateUnreadCount();
-    }
-
-    // Create alert element
-    function createAlertElement(alert) {
-        const div = document.createElement('div');
-        div.className = `alert-item ${alert.read ? 'read' : 'unread'}`;
-        div.innerHTML = `
-            <div class="alert-icon ${alert.severity}">
-                ${getAlertIcon(alert.type)}
-            </div>
-            <div class="alert-content">
+        container.innerHTML = typeAlerts.length ? typeAlerts.map(alert => `
+            <div class="alert-item ${alert.read ? 'read' : 'unread'} ${alert.severity}">
                 <div class="alert-header">
-                    <div class="alert-title">${alert.title}</div>
-                    <div class="alert-time">${formatAlertTime(alert.timestamp)}</div>
+                    <span class="alert-title">${alert.title}</span>
+                    <span class="alert-time">${formatDate(alert.timestamp)}</span>
                 </div>
                 <div class="alert-message">${alert.message}</div>
                 <div class="alert-actions">
-                    <button class="btn" onclick="markAsRead('${alert.id}')">
-                        <i class="fas fa-check"></i> Đánh dấu đã đọc
-                    </button>
-                    ${getAlertActions(alert)}
+                    ${!alert.read ? `
+                        <button onclick="markAlertRead('${alert.id}')" class="btn">
+                            <i class="fas fa-check"></i> Đánh dấu đã đọc
+                        </button>
+                    ` : ''}
                 </div>
             </div>
-        `;
-        return div;
+        `).join('') : '<div class="no-alerts">Không có cảnh báo</div>';
+
+        // Cập nhật số lượng
+        const countElement = container.closest('.alert-group')?.querySelector('.alert-count');
+        if (countElement) {
+            countElement.textContent = typeAlerts.length;
+        }
+    });
+}
+
+// Xử lý Charts
+function initializeCharts() {
+    initializeStockTrendChart();
+    initializeCategoryDistributionChart();
+    initializeDemandForecastChart();
+    initializeImportExportRatioChart();
+}
+
+function initializeStockTrendChart() {
+    const ctx = document.getElementById('stockTrendChart')?.getContext('2d');
+    if (!ctx) return;
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['T1', 'T2', 'T3', 'T4', 'T5', 'T6'],
+            datasets: [{
+                label: 'Số lượng tồn kho',
+                data: [65, 59, 80, 81, 56, 55],
+                borderColor: '#4CAF50',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+}
+
+// Các hàm tiện ích
+function updateElement(id, value) {
+    const element = document.getElementById(id);
+    if (element) element.textContent = value;
+}
+
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('vi-VN', {
+        style: 'currency',
+        currency: 'VND'
+    }).format(amount);
+}
+
+function formatDate(date) {
+    return new Date(date).toLocaleString('vi-VN');
+}
+
+function getDeviceStatus(device) {
+    if (device.quantity === 0) return 'out-of-stock';
+    if (device.quantity <= device.threshold) return 'low-stock';
+    return 'in-stock';
+}
+
+function getStatusText(device) {
+    const status = getDeviceStatus(device);
+    const statusMap = {
+        'in-stock': 'Còn hàng',
+        'low-stock': 'Sắp hết',
+        'out-of-stock': 'Hết hàng'
+    };
+    return statusMap[status] || status;
+}
+
+function showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
+// CRUD Operations cho Devices
+function showAddDeviceModal() {
+    const modal = document.getElementById('device-form-modal');
+    if (!modal) return;
+
+    document.getElementById('device-form-title').textContent = 'Thêm thiết bị mới';
+    document.getElementById('device-form').reset();
+    modal.style.display = 'block';
+}
+
+function closeDeviceForm() {
+    const modal = document.getElementById('device-form-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+function handleDeviceSubmit(event) {
+    event.preventDefault();
+    const form = event.target;
+    
+    const deviceData = {
+        id: form.id?.value || `D${String(devices.length + 1).padStart(3, '0')}`,
+        name: form['device-name'].value,
+        category: form['device-category'].value,
+        quantity: parseInt(form['device-quantity'].value),
+        price: parseInt(form['device-price'].value),
+        threshold: parseInt(form['device-threshold'].value),
+        description: form['device-description'].value
+    };
+
+    if (form.id?.value) {
+        // Edit existing device
+        devices = devices.map(d => d.id === deviceData.id ? deviceData : d);
+        showNotification('Cập nhật thiết bị thành công');
+    } else {
+        // Add new device
+        devices.push(deviceData);
+        showNotification('Thêm thiết bị thành công');
     }
 
-    // Get alert icon based on type
-    function getAlertIcon(type) {
-        const icons = {
-            'low-stock': '<i class="fas fa-box"></i>',
-            'inventory': '<i class="fas fa-clipboard-check"></i>',
-            'transaction': '<i class="fas fa-exchange-alt"></i>',
-            'system': '<i class="fas fa-cog"></i>'
-        };
-        return icons[type] || '<i class="fas fa-bell"></i>';
+    updateDevicesTable();
+    updateDashboardStats();
+    closeDeviceForm();
+}
+
+// Export các hàm cần thiết
+window.showAddDeviceModal = showAddDeviceModal;
+window.closeDeviceForm = closeDeviceForm;
+window.handleDeviceSubmit = handleDeviceSubmit;
+window.viewDevice = viewDevice;
+window.editDevice = editDevice;
+window.deleteDevice = deleteDevice;
+window.markAlertRead = markAlertRead;
+
+// Thêm các hàm còn thiếu
+function viewDevice(deviceId) {
+    const device = devices.find(d => d.id === deviceId);
+    if (!device) {
+        showNotification('Không tìm thấy thiết bị', 'error');
+        return;
     }
 
-    // Get additional actions based on alert type
-    function getAlertActions(alert) {
-        switch (alert.type) {
-            case 'low-stock':
-                return `
-                    <button class="btn" onclick="viewDevice('${alert.deviceId}')">
-                        <i class="fas fa-eye"></i> Xem thiết bị
+    const modal = document.getElementById('device-detail-modal');
+    if (!modal) return;
+
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h2>Chi tiết thiết bị</h2>
+            <div class="device-info">
+                <p><strong>ID:</strong> ${device.id}</p>
+                <p><strong>Tên:</strong> ${device.name}</p>
+                <p><strong>Danh mục:</strong> ${device.category}</p>
+                <p><strong>Số lượng:</strong> ${device.quantity}</p>
+                <p><strong>Giá:</strong> ${formatCurrency(device.price)}</p>
+                <p><strong>Trạng thái:</strong> ${getStatusText(device)}</p>
+                <p><strong>Ngưỡng cảnh báo:</strong> ${device.threshold}</p>
+                <p><strong>Mô tả:</strong> ${device.description || 'Không có mô tả'}</p>
+            </div>
+            <div class="modal-actions">
+                <button onclick="editDevice('${device.id}')" class="btn edit-btn">
+                    <i class="fas fa-edit"></i> Sửa
+                </button>
+                <button onclick="closeModal('device-detail-modal')" class="btn">
+                    <i class="fas fa-times"></i> Đóng
+                </button>
+            </div>
+        </div>
+    `;
+    modal.style.display = 'block';
+}
+
+function editDevice(deviceId) {
+    const device = devices.find(d => d.id === deviceId);
+    if (!device) {
+        showNotification('Không tìm thấy thiết bị', 'error');
+        return;
+    }
+
+    const modal = document.getElementById('device-form-modal');
+    if (!modal) return;
+
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h2>Chỉnh sửa thiết bị</h2>
+            <form id="device-form" onsubmit="handleDeviceSubmit(event)">
+                <input type="hidden" name="id" value="${device.id}">
+                <div class="form-group">
+                    <label>Tên thiết bị</label>
+                    <input type="text" name="device-name" value="${device.name}" required>
+                </div>
+                <div class="form-group">
+                    <label>Danh mục</label>
+                    <select name="device-category" required>
+                        <option value="laptop" ${device.category === 'laptop' ? 'selected' : ''}>Laptop</option>
+                        <option value="desktop" ${device.category === 'desktop' ? 'selected' : ''}>Desktop</option>
+                        <option value="printer" ${device.category === 'printer' ? 'selected' : ''}>Máy in</option>
+                        <option value="network" ${device.category === 'network' ? 'selected' : ''}>Thiết bị mạng</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Số lượng</label>
+                    <input type="number" name="device-quantity" value="${device.quantity}" required min="0">
+                </div>
+                <div class="form-group">
+                    <label>Giá</label>
+                    <input type="number" name="device-price" value="${device.price}" required min="0">
+                </div>
+                <div class="form-group">
+                    <label>Ngưỡng cảnh báo</label>
+                    <input type="number" name="device-threshold" value="${device.threshold}" required min="0">
+                </div>
+                <div class="form-group">
+                    <label>Mô tả</label>
+                    <textarea name="device-description">${device.description || ''}</textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn save-btn">
+                        <i class="fas fa-save"></i> Lưu
                     </button>
-                    <button class="btn primary-btn" onclick="createImportTransaction('${alert.deviceId}')">
-                        <i class="fas fa-plus"></i> Tạo nhập kho
+                    <button type="button" onclick="closeModal('device-form-modal')" class="btn">
+                        <i class="fas fa-times"></i> Hủy
                     </button>
-                `;
-            case 'transaction':
-                return `
-                    <button class="btn" onclick="viewTransaction('${alert.transactionId}')">
-                        <i class="fas fa-eye"></i> Xem giao dịch
-                    </button>
-                `;
-            default:
-                return '';
+                </div>
+            </form>
+        </div>
+    `;
+    modal.style.display = 'block';
+}
+
+function deleteDevice(deviceId) {
+    if (!confirm('Bạn có chắc chắn muốn xóa thiết bị này?')) return;
+
+    const index = devices.findIndex(d => d.id === deviceId);
+    if (index === -1) {
+        showNotification('Không tìm thấy thiết bị', 'error');
+        return;
+    }
+
+    devices.splice(index, 1);
+    updateDevicesTable();
+    updateDashboardStats();
+    showNotification('Xóa thiết bị thành công');
+}
+
+function updatePagination() {
+    const totalPages = Math.ceil(devices.length / itemsPerPage);
+    const paginationEl = document.querySelector('.pagination');
+    if (!paginationEl) return;
+
+    const prevBtn = paginationEl.querySelector('#prev-page');
+    const nextBtn = paginationEl.querySelector('#next-page');
+    const pageInfo = paginationEl.querySelector('#page-info');
+
+    if (prevBtn) prevBtn.disabled = currentPage === 1;
+    if (nextBtn) nextBtn.disabled = currentPage === totalPages;
+    if (pageInfo) pageInfo.textContent = `Trang ${currentPage} / ${totalPages}`;
+}
+
+function initializeCategoryDistributionChart() {
+    const ctx = document.getElementById('categoryDistributionChart')?.getContext('2d');
+    if (!ctx) return;
+
+    // Tính toán số lượng thiết bị theo danh mục
+    const categoryCount = devices.reduce((acc, device) => {
+        acc[device.category] = (acc[device.category] || 0) + 1;
+        return acc;
+    }, {});
+
+    new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: Object.keys(categoryCount),
+            datasets: [{
+                data: Object.values(categoryCount),
+                backgroundColor: [
+                    '#4CAF50',
+                    '#2196F3',
+                    '#FFC107',
+                    '#F44336'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
         }
-    }
+    });
+}
 
-    // Filter alerts based on current filters
-    function filterAlerts() {
-        const typeFilter = document.querySelector('.alert-type-filters .filter-btn.active')?.dataset.type;
-        const severityFilter = document.querySelector('.alert-severity-filters .filter-btn.active')?.dataset.severity;
+function initializeDemandForecastChart() {
+    const ctx = document.getElementById('demandForecastChart')?.getContext('2d');
+    if (!ctx) return;
 
-        return alerts.filter(alert => {
-            const matchesType = typeFilter === 'all' || alert.type === typeFilter;
-            const matchesSeverity = severityFilter === 'all' || alert.severity === severityFilter;
-            return matchesType && matchesSeverity;
-        });
-    }
-
-    // Mark alert as read
-    function markAsRead(alertId) {
-        const alert = alerts.find(a => a.id === alertId);
-        if (alert) {
-            alert.read = true;
-            displayAlerts();
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['T1', 'T2', 'T3', 'T4', 'T5', 'T6'],
+            datasets: [{
+                label: 'Dự báo nhu cầu',
+                data: [30, 35, 40, 45, 50, 55],
+                borderColor: '#2196F3',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
         }
-    }
+    });
+}
 
-    // Mark all alerts as read
-    function markAllAsRead() {
-        alerts.forEach(alert => alert.read = true);
-        displayAlerts();
-    }
+function initializeImportExportRatioChart() {
+    const ctx = document.getElementById('importExportRatioChart')?.getContext('2d');
+    if (!ctx) return;
 
-    // Show alert settings modal
-    function showAlertSettings() {
-        const modal = document.getElementById('alert-settings-modal');
-        if (modal) modal.style.display = 'block';
-    }
-
-    // Close alert settings modal
-    function closeAlertSettings() {
-        const modal = document.getElementById('alert-settings-modal');
-        if (modal) modal.style.display = 'none';
-    }
-
-    // Handle alert settings form submission
-    function handleAlertSettingsSubmit(event) {
-        event.preventDefault();
-
-        alertSettings = {
-            lowStockThreshold: parseInt(document.getElementById('low-stock-threshold').value),
-            largeChangeThreshold: parseInt(document.getElementById('large-change-threshold').value),
-            notificationMethods: {
-                system: document.querySelector('.notification-methods input[type="checkbox"]:nth-child(1)').checked,
-                email: document.querySelector('.notification-methods input[type="checkbox"]:nth-child(2)').checked,
-                sms: document.querySelector('.notification-methods input[type="checkbox"]:nth-child(3)').checked
-            },
-            checkFrequency: document.getElementById('check-frequency').value
-        };
-
-        // Save settings to localStorage
-        localStorage.setItem('alertSettings', JSON.stringify(alertSettings));
-
-        // Restart alert checking with new settings
-        startAlertChecking();
-
-        // Close modal
-        closeAlertSettings();
-        alert('Đã lưu cài đặt thông báo!');
-    }
-
-    // Update alert settings form with current values
-    function updateAlertSettingsForm() {
-        document.getElementById('low-stock-threshold').value = alertSettings.lowStockThreshold;
-        document.getElementById('large-change-threshold').value = alertSettings.largeChangeThreshold;
-        document.getElementById('check-frequency').value = alertSettings.checkFrequency;
-
-        const checkboxes = document.querySelectorAll('.notification-methods input[type="checkbox"]');
-        checkboxes[0].checked = alertSettings.notificationMethods.system;
-        checkboxes[1].checked = alertSettings.notificationMethods.email;
-        checkboxes[2].checked = alertSettings.notificationMethods.sms;
-    }
-
-    // Start alert checking based on frequency
-    function startAlertChecking() {
-        // Clear existing interval if any
-        if (window.alertCheckInterval) {
-            clearInterval(window.alertCheckInterval);
-        }
-
-        // Set up new checking interval
-        switch (alertSettings.checkFrequency) {
-            case 'realtime':
-                // Check every minute for demo purposes
-                window.alertCheckInterval = setInterval(checkAlerts, 60000);
-                break;
-            case 'hourly':
-                window.alertCheckInterval = setInterval(checkAlerts, 3600000);
-                break;
-            case 'daily':
-                window.alertCheckInterval = setInterval(checkAlerts, 86400000);
-                break;
-            case 'weekly':
-                window.alertCheckInterval = setInterval(checkAlerts, 604800000);
-                break;
-        }
-
-        // Initial check
-        checkAlerts();
-    }
-
-    // Helper function to format alert time
-    function formatAlertTime(timestamp) {
-        const date = new Date(timestamp);
-        const now = new Date();
-        const diff = now - date;
-
-        if (diff < 60000) return 'Vừa xong';
-        if (diff < 3600000) return `${Math.floor(diff / 60000)} phút trước`;
-        if (diff < 86400000) return `${Math.floor(diff / 3600000)} giờ trước`;
-        return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
-    }
-
-    // Notify user based on settings
-    function notifyUser(alert) {
-        if (alertSettings.notificationMethods.system) {
-            // Show browser notification
-            if (Notification.permission === "granted") {
-                new Notification(alert.title, {
-                    body: alert.message,
-                    icon: '/path/to/icon.png'
-                });
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['T1', 'T2', 'T3', 'T4', 'T5', 'T6'],
+            datasets: [
+                {
+                    label: 'Nhập kho',
+                    data: [20, 25, 30, 35, 25, 20],
+                    backgroundColor: '#4CAF50'
+                },
+                {
+                    label: 'Xuất kho',
+                    data: [15, 20, 25, 30, 20, 15],
+                    backgroundColor: '#F44336'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
             }
         }
+    });
+}
 
-        if (alertSettings.notificationMethods.email) {
-            // Send email notification (implement your email service)
-            sendEmailNotification(alert);
-        }
+function updateCharts() {
+    // Cập nhật dữ liệu cho các biểu đồ
+    const stockTrendChart = Chart.getChart('stockTrendChart');
+    const categoryDistChart = Chart.getChart('categoryDistributionChart');
+    const demandForecastChart = Chart.getChart('demandForecastChart');
+    const importExportChart = Chart.getChart('importExportRatioChart');
 
-        if (alertSettings.notificationMethods.sms) {
-            // Send SMS notification (implement your SMS service)
-            sendSMSNotification(alert);
-        }
+    if (stockTrendChart) {
+        stockTrendChart.data.datasets[0].data = [65, 59, 80, 81, 56, 55];
+        stockTrendChart.update();
     }
 
-    // Update unread count
-    function updateUnreadCount() {
-        const unreadCount = alerts.filter(alert => !alert.read).length;
-        // Update UI with unread count (implement as needed)
+    if (categoryDistChart) {
+        const categoryCount = devices.reduce((acc, device) => {
+            acc[device.category] = (acc[device.category] || 0) + 1;
+            return acc;
+        }, {});
+        categoryDistChart.data.labels = Object.keys(categoryCount);
+        categoryDistChart.data.datasets[0].data = Object.values(categoryCount);
+        categoryDistChart.update();
     }
 
-    // Initialize alerts when document is ready
-    document.addEventListener('DOMContentLoaded', initializeAlerts);
-});
+    // Cập nhật các biểu đồ khác tương tự...
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) modal.style.display = 'none';
+}
+
+// Thêm hàm markAlertRead
+function markAlertRead(alertId) {
+    const alert = alerts.find(a => a.id === alertId);
+    if (!alert) {
+        showNotification('Không tìm thấy cảnh báo', 'error');
+        return;
+    }
+
+    alert.read = true;
+    updateAlerts();
+    showNotification('Đã đánh dấu cảnh báo là đã đọc');
+}
+
+// Thêm hàm markAllAlertsAsRead
+function markAllAlertsAsRead() {
+    alerts.forEach(alert => alert.read = true);
+    updateAlerts();
+    showNotification('Đã đánh dấu tất cả cảnh báo là đã đọc');
+}
+
+// Export thêm hàm mới
+window.markAllAlertsAsRead = markAllAlertsAsRead;

@@ -3,134 +3,202 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Quản Lý Kho</title>
+    <title>Quản lý kho</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <!-- SIDEBAR -->
-    <div class="sidebar">
-        <h2>Inventory</h2>
-        <ul>
-            <li data-section="dashboard">
-                <i class="fas fa-chart-line"></i>
-                Dashboard
-            </li>
-            <li data-section="devices">
-                <i class="fas fa-laptop"></i>
-                Danh Mục Thiết Bị
-            </li>
-            <li data-section="transactions">
-                <i class="fas fa-exchange-alt"></i>
-                Nhập/Xuất Kho
-            </li>
-            <li data-section="history">
-                <i class="fas fa-history"></i>
-                Lịch Sử
-            </li>
-            <li data-section="alerts">
-                <i class="fas fa-bell"></i>
-                Cảnh Báo
-            </li>
-            <li data-section="payments">
-                <i class="fas fa-money-bill-wave"></i>
-                Thanh Toán
-            </li>
-        </ul>
-    </div>
-
-    <!-- MAIN CONTENT -->
-    <div class="main-content">
-        <!-- DASHBOARD -->
-        <div class="section active" id="dashboard">
-            <h2>📊 Dashboard</h2>
-            <div class="dashboard-cards">
-                <div class="card">Tổng thiết bị: <span id="total-devices">0</span></div>
-                <div class="card">Nhập tháng này: <span id="imported-this-month">0</span></div>
-                <div class="card">Xuất tháng này: <span id="exported-this-month">0</span></div>
-                <div class="card">Thiết bị sắp hết: <span id="low-stock-devices">0</span></div>
+    <div class="main-container">
+        <aside class="sidebar">
+            <div class="logo">
+                <h1>Quản lý kho</h1>
             </div>
-            <canvas id="stockChart"></canvas>
-        </div>
+            <ul>
+                <li data-section="dashboard" class="active">
+                    <i class="fas fa-chart-line"></i> Dashboard
+                </li>
+                <li data-section="devices">
+                    <i class="fas fa-laptop"></i> Danh Mục Thiết Bị
+                </li>
+                <li data-section="transactions">
+                    <i class="fas fa-exchange-alt"></i> Nhập/Xuất Kho
+                </li>
+                <li data-section="history">
+                    <i class="fas fa-history"></i> Lịch Sử
+                </li>
+                <li data-section="alerts">
+                    <i class="fas fa-bell"></i> Cảnh Báo
+                </li>
+                <li data-section="payments">
+                    <i class="fas fa-money-bill"></i> Thanh Toán
+                </li>
+            </ul>
+        </aside>
 
-        <!-- DANH MỤC THIẾT BỊ -->
-        <div class="section" id="devices">
-            <h2>📦 Danh Mục Thiết Bị</h2>
-            <button class="add-btn">+ Thêm Thiết Bị</button>
-            <button class="import-btn">📥 Import Excel</button>
-            <button class="export-btn">📤 Xuất Excel</button>
-            <button class="pdf-btn">📄 Xuất PDF</button>
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Mã</th>
-                            <th>Tên</th>
-                            <th>Số lượng</th>
-                            <th>Hành động</th>
-                        </tr>
-                    </thead>
-                    <tbody id="devices-table"></tbody>
-                </table>
-            </div>
-        </div>
+        <main class="content-area">
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="section active">
+                <h2>Dashboard</h2>
+                <div class="stats-cards">
+                    <div class="stats-card">
+                        <h3>Tổng thiết bị</h3>
+                        <p id="total-devices">80</p>
+                    </div>
+                    <div class="stats-card">
+                        <h3>Nhập tháng này</h3>
+                        <p id="imported-this-month">20</p>
+                    </div>
+                    <div class="stats-card">
+                        <h3>Xuất tháng này</h3>
+                        <p id="exported-this-month">10</p>
+                    </div>
+                    <div class="stats-card">
+                        <h3>Thiết bị sắp hết</h3>
+                        <p id="low-stock-devices">5</p>
+                    </div>
+                </div>
 
-        <!-- Transactions Section -->
-        <div id="transactions" class="section">
-            <div class="section-header">
-                <h2><i class="fas fa-exchange-alt"></i> Quản lý Nhập/Xuất Kho</h2>
-            </div>
+                <div class="chart-grid">
+                    <div class="chart-container">
+                        <h3>Xu hướng tồn kho</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="stockTrendChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Phân bố danh mục</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="categoryDistributionChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Dự báo nhu cầu</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="demandForecastChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Tỷ lệ nhập/xuất</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="importExportRatioChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-            <div class="transaction-form">
-                <!-- Transaction Type Selection -->
-                <div class="transaction-type">
-                    <button class="active" data-type="import">
-                        <i class="fas fa-arrow-down"></i> Nhập Kho
-                    </button>
-                    <button data-type="export">
-                        <i class="fas fa-arrow-up"></i> Xuất Kho
+            <!-- Devices Section -->
+            <section id="devices" class="section">
+                <h2>Danh Mục Thiết Bị</h2>
+                
+                <!-- Device Statistics -->
+                <div class="device-stats">
+                    <div class="stat-card">
+                        <div class="stat-icon">📦</div>
+                        <div class="stat-content">
+                            <h3>Tổng thiết bị</h3>
+                            <p id="total-devices-count">80</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⚠️</div>
+                        <div class="stat-content">
+                            <h3>Sắp hết hàng</h3>
+                            <p id="low-stock-count">5</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📊</div>
+                        <div class="stat-content">
+                            <h3>Đang tồn kho</h3>
+                            <p id="in-stock-count">75</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🏷️</div>
+                        <div class="stat-content">
+                            <h3>Danh mục</h3>
+                            <p id="category-count">4</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Device Filters -->
+                <div class="device-filters">
+                    <div class="search-box">
+                        <input type="text" id="device-search" placeholder="Tìm kiếm thiết bị...">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <div class="filter-group">
+                        <select id="category-filter">
+                            <option value="">Tất cả danh mục</option>
+                            <option value="laptop">Laptop</option>
+                            <option value="desktop">Desktop</option>
+                            <option value="printer">Máy in</option>
+                            <option value="network">Thiết bị mạng</option>
+                        </select>
+                        <select id="status-filter">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="in-stock">Còn hàng</option>
+                            <option value="low-stock">Sắp hết</option>
+                            <option value="out-of-stock">Hết hàng</option>
+                        </select>
+                        <select id="sort-by">
+                            <option value="name">Sắp xếp theo tên</option>
+                            <option value="quantity">Sắp xếp theo số lượng</option>
+                            <option value="price">Sắp xếp theo giá</option>
+                        </select>
+                    </div>
+                    <button class="add-device-btn" onclick="showAddDeviceModal()">
+                        <i class="fas fa-plus"></i> Thêm thiết bị
                     </button>
                 </div>
 
-                <!-- Transaction Details -->
-                <div class="transaction-details">
+                <!-- Device Table -->
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mã</th>
+                                <th>Tên thiết bị</th>
+                                <th>Danh mục</th>
+                                <th>Số lượng</th>
+                                <th>Đơn giá</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="devices-table"></tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination">
+                    <button id="prev-page" disabled>Trước</button>
+                    <span id="page-info">Trang 1 / 1</span>
+                    <button id="next-page" disabled>Sau</button>
+                </div>
+            </section>
+
+            <!-- Transactions Section -->
+            <section id="transactions" class="section">
+                <h2>Nhập/Xuất Kho</h2>
+                <div class="transaction-type">
+                    <button class="active" data-type="import">Nhập Kho</button>
+                    <button data-type="export">Xuất Kho</button>
+                </div>
+                <div class="transaction-form">
                     <div class="form-group">
-                        <label for="warehouse">Kho</label>
-                        <select id="warehouse" required>
-                            <option value="">Chọn kho</option>
-                            <option value="warehouse1">Kho 1</option>
-                            <option value="warehouse2">Kho 2</option>
-                            <option value="warehouse3">Kho 3</option>
+                        <label for="device-select">Chọn thiết bị</label>
+                        <select id="device-select">
+                            <option value="">Chọn thiết bị</option>
                         </select>
                     </div>
-
                     <div class="form-group">
-                        <label for="transaction-date">Ngày giao dịch</label>
-                        <input type="date" id="transaction-date" required>
+                        <label for="quantity">Số lượng</label>
+                        <input type="number" id="quantity" min="1">
                     </div>
-
-                    <!-- Product Selection -->
-                    <div class="form-group">
-                        <label>Chọn thiết bị</label>
-                        <div class="product-selection">
-                            <div class="form-group">
-                                <select id="device-select">
-                                    <option value="">Chọn thiết bị</option>
-                                    <option value="device1">Thiết bị 1</option>
-                                    <option value="device2">Thiết bị 2</option>
-                                    <option value="device3">Thiết bị 3</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <input type="number" id="quantity" placeholder="Số lượng" min="1">
-                            </div>
-                            <button onclick="addProduct()">
-                                <i class="fas fa-plus"></i> Thêm
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Selected Products Table -->
+                    <button id="add-product-btn">Thêm</button>
                     <div class="selected-products">
                         <table>
                             <thead>
@@ -138,378 +206,166 @@
                                     <th>Mã thiết bị</th>
                                     <th>Tên thiết bị</th>
                                     <th>Số lượng</th>
-                                    <th>Đơn vị</th>
-                                    <th></th>
+                                    <th>Thao tác</th>
                                 </tr>
                             </thead>
-                            <tbody id="selected-products-list">
-                                <!-- Products will be added here dynamically -->
-                            </tbody>
+                            <tbody id="selected-products-list"></tbody>
                         </table>
                     </div>
+                </div>
+            </section>
 
-                    <!-- Supplier/Receiver Information -->
-                    <div class="form-group">
-                        <label for="supplier">Nhà cung cấp/Người nhận</label>
-                        <input type="text" id="supplier" placeholder="Nhập tên nhà cung cấp hoặc người nhận">
-                    </div>
+            <!-- History Section -->
+            <section id="history" class="section">
+                <h2>Lịch Sử</h2>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Thời gian</th>
+                                <th>Hành động</th>
+                                <th>Chi tiết</th>
+                                <th>Người thực hiện</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table"></tbody>
+                    </table>
+                </div>
+            </section>
 
-                    <div class="form-group">
-                        <label for="notes">Ghi chú</label>
-                        <textarea id="notes" rows="3" placeholder="Nhập ghi chú nếu có"></textarea>
+            <!-- Alerts Section -->
+            <section id="alerts" class="section">
+                <h2>Cảnh Báo</h2>
+                <div class="alerts-header">
+                    <div class="alerts-actions">
+                        <button class="btn" onclick="markAllAsRead()">Đánh dấu tất cả đã đọc</button>
+                        <button class="btn" onclick="showAlertSettings()">Cài đặt</button>
                     </div>
                 </div>
-
-                <!-- Transaction Summary -->
-                <div class="transaction-summary">
-                    <div class="total-items">
-                        Tổng số mặt hàng: <span id="total-items">0</span>
-                    </div>
-                    <div class="action-buttons">
-                        <button class="save-draft">
-                            <i class="fas fa-save"></i> Lưu nháp
-                        </button>
-                        <button class="complete-transaction">
-                            <i class="fas fa-check"></i> Hoàn tất
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- LỊCH SỬ GIAO DỊCH -->
-        <div class="section" id="history">
-            <div class="section-header">
-                <h2><i class="fas fa-history"></i> Lịch Sử Giao Dịch</h2>
-            </div>
-
-            <!-- Bộ lọc -->
-            <div class="history-filters">
-                <div class="filter-group">
-                    <label>Thời gian:</label>
-                    <div class="date-filters">
-                        <button class="filter-btn active" data-period="all">Tất cả</button>
-                        <button class="filter-btn" data-period="today">Hôm nay</button>
-                        <button class="filter-btn" data-period="week">Tuần này</button>
-                        <button class="filter-btn" data-period="month">Tháng này</button>
-                        <div class="custom-date">
-                            <input type="date" id="start-date" placeholder="Từ ngày">
-                            <input type="date" id="end-date" placeholder="Đến ngày">
-                            <button class="apply-date">Áp dụng</button>
+                <div class="alerts-list">
+                    <div class="alert-group">
+                        <div class="alert-group-header">
+                            <span>Cảnh báo sắp hết hàng</span>
+                            <span class="alert-count">0</span>
                         </div>
+                        <div id="low-stock-alerts"></div>
                     </div>
-                </div>
-                
-                <div class="filter-row">
-                    <div class="filter-group">
-                        <label for="transaction-type-filter">Loại giao dịch:</label>
-                        <select id="transaction-type-filter">
-                            <option value="all">Tất cả</option>
-                            <option value="import">Nhập kho</option>
-                            <option value="export">Xuất kho</option>
-                        </select>
-                    </div>
-
-                    <div class="filter-group">
-                        <label for="product-filter">Sản phẩm:</label>
-                        <select id="product-filter">
-                            <option value="all">Tất cả sản phẩm</option>
-                        </select>
-                    </div>
-
-                    <div class="filter-group">
-                        <label for="warehouse-filter">Kho:</label>
-                        <select id="warehouse-filter">
-                            <option value="all">Tất cả kho</option>
-                            <option value="warehouse1">Kho 1</option>
-                            <option value="warehouse2">Kho 2</option>
-                            <option value="warehouse3">Kho 3</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Thống kê tổng quan -->
-            <div class="history-summary">
-                <div class="summary-card">
-                    <div class="card-icon"><i class="fas fa-arrow-down"></i></div>
-                    <div class="card-content">
-                        <h3>Tổng nhập</h3>
-                        <p id="total-import">0</p>
-                    </div>
-                </div>
-                <div class="summary-card">
-                    <div class="card-icon"><i class="fas fa-arrow-up"></i></div>
-                    <div class="card-content">
-                        <h3>Tổng xuất</h3>
-                        <p id="total-export">0</p>
-                    </div>
-                </div>
-                <div class="summary-card">
-                    <div class="card-icon"><i class="fas fa-exchange-alt"></i></div>
-                    <div class="card-content">
-                        <h3>Tổng giao dịch</h3>
-                        <p id="total-transactions">0</p>
-                    </div>
-                </div>
-                <div class="summary-card">
-                    <div class="card-icon"><i class="fas fa-box"></i></div>
-                    <div class="card-content">
-                        <h3>Sản phẩm</h3>
-                        <p id="total-products">0</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Bảng lịch sử -->
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Mã GD</th>
-                            <th>Thời gian</th>
-                            <th>Loại</th>
-                            <th>Kho</th>
-                            <th>Sản phẩm</th>
-                            <th>Số lượng</th>
-                            <th>Người thực hiện</th>
-                            <th>Ghi chú</th>
-                            <th>Thao tác</th>
-                        </tr>
-                    </thead>
-                    <tbody id="history-table"></tbody>
-                </table>
-            </div>
-
-            <!-- Phân trang -->
-            <div class="pagination">
-                <button id="prev-page" disabled><i class="fas fa-chevron-left"></i></button>
-                <span id="page-info">Trang 1 / 1</span>
-                <button id="next-page"><i class="fas fa-chevron-right"></i></button>
-            </div>
-
-            <!-- Modal xem chi tiết giao dịch -->
-            <div id="transaction-detail-modal" class="modal">
-                <div class="modal-content">
-                    <h2>Chi tiết giao dịch</h2>
-                    <div id="transaction-detail-content"></div>
-                    <div class="modal-actions">
-                        <button class="btn" onclick="closeTransactionDetail()">Đóng</button>
-                        <button class="btn primary-btn" onclick="exportTransactionDetail()">
-                            <i class="fas fa-download"></i> Xuất PDF
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- CẢNH BÁO & THÔNG BÁO -->
-        <div class="section" id="alerts">
-            <div class="alerts-header">
-                <h2><i class="fas fa-bell"></i> Cảnh Báo & Thông Báo</h2>
-                <div class="alerts-actions">
-                    <button class="btn" onclick="markAllAsRead()">
-                        <i class="fas fa-check-double"></i> Đánh dấu tất cả đã đọc
-                    </button>
-                    <button class="btn primary-btn" onclick="showAlertSettings()">
-                        <i class="fas fa-cog"></i> Cài đặt thông báo
-                    </button>
-                </div>
-            </div>
-
-            <div class="alert-filters">
-                <div class="filter-group">
-                    <label>Loại cảnh báo</label>
-                    <div class="filter-buttons alert-type-filters">
-                        <button class="filter-btn active" data-type="all">Tất cả</button>
-                        <button class="filter-btn" data-type="low-stock">Sắp hết hàng</button>
-                        <button class="filter-btn" data-type="inventory">Tồn kho</button>
-                        <button class="filter-btn" data-type="transaction">Giao dịch</button>
-                        <button class="filter-btn" data-type="system">Hệ thống</button>
-                    </div>
-                </div>
-                <div class="filter-group">
-                    <label>Mức độ</label>
-                    <div class="filter-buttons alert-severity-filters">
-                        <button class="filter-btn active" data-severity="all">Tất cả</button>
-                        <button class="filter-btn" data-severity="high">Cao</button>
-                        <button class="filter-btn" data-severity="medium">Trung bình</button>
-                        <button class="filter-btn" data-severity="low">Thấp</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="alerts-list">
-                <div class="alert-group">
-                    <div class="alert-group-header">
-                        <span>Cảnh báo sắp hết hàng</span>
-                        <span class="alert-count">0</span>
-                    </div>
-                    <div id="low-stock-alerts"></div>
-                </div>
-
-                <div class="alert-group">
-                    <div class="alert-group-header">
-                        <span>Cảnh báo tồn kho</span>
-                        <span class="alert-count">0</span>
-                    </div>
-                    <div id="inventory-alerts"></div>
-                </div>
-
-                <div class="alert-group">
-                    <div class="alert-group-header">
-                        <span>Cảnh báo giao dịch</span>
-                        <span class="alert-count">0</span>
-                    </div>
-                    <div id="transaction-alerts"></div>
-                </div>
-
-                <div class="alert-group">
-                    <div class="alert-group-header">
-                        <span>Thông báo hệ thống</span>
-                        <span class="alert-count">0</span>
-                    </div>
-                    <div id="system-alerts"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Alert Settings Modal -->
-        <div id="alert-settings-modal" class="modal">
-            <div class="modal-content alert-settings-modal">
-                <div class="modal-header">
-                    <h2><i class="fas fa-cog"></i> Cài đặt thông báo</h2>
-                    <span class="close" onclick="closeAlertSettings()">&times;</span>
-                </div>
-                <div class="modal-body">
-                    <form id="alert-settings-form">
-                        <div class="settings-form-group">
-                            <label for="low-stock-threshold">Ngưỡng cảnh báo sắp hết hàng</label>
-                            <input type="number" id="low-stock-threshold" min="1" value="10">
+                    <div class="alert-group">
+                        <div class="alert-group-header">
+                            <span>Cảnh báo tồn kho</span>
+                            <span class="alert-count">0</span>
                         </div>
-
-                        <div class="settings-form-group">
-                            <label for="large-change-threshold">Ngưỡng cảnh báo thay đổi lớn (%)</label>
-                            <input type="number" id="large-change-threshold" min="1" max="100" value="50">
-                        </div>
-
-                        <div class="settings-form-group">
-                            <label>Phương thức thông báo</label>
-                            <div class="notification-methods">
-                                <label class="notification-method">
-                                    <input type="checkbox" checked> Trên hệ thống
-                                </label>
-                                <label class="notification-method">
-                                    <input type="checkbox" checked> Email
-                                </label>
-                                <label class="notification-method">
-                                    <input type="checkbox"> SMS
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="settings-form-group">
-                            <label for="check-frequency">Tần suất kiểm tra</label>
-                            <select id="check-frequency" class="form-control">
-                                <option value="realtime">Thời gian thực</option>
-                                <option value="hourly">Mỗi giờ</option>
-                                <option value="daily">Mỗi ngày</option>
-                                <option value="weekly">Mỗi tuần</option>
-                            </select>
-                        </div>
-
-                        <div class="modal-footer">
-                            <button type="button" class="btn" onclick="closeAlertSettings()">Hủy</button>
-                            <button type="submit" class="btn primary-btn">Lưu cài đặt</button>
-                        </div>
-                    </form>
+                        <div id="inventory-alerts"></div>
+                    </div>
                 </div>
-            </div>
-        </div>
+            </section>
 
-        <!-- QUẢN LÝ THANH TOÁN -->
-        <div class="section" id="payments">
-            <div class="section-header">
-                <h2>💰 Quản Lý Thanh Toán</h2>
-                <div class="action-buttons">
-                    <button id="add-payment-btn" onclick="showAddPaymentModal()" class="btn primary-btn">
-                        <span class="btn-icon">➕</span> Thêm thanh toán
-                    </button>
-                    <button id="import-payment-btn" class="btn">
-                        <span class="btn-icon">📥</span> Import Excel
-                    </button>
-                    <button id="export-payment-btn" class="btn">
-                        <span class="btn-icon">📤</span> Export Excel
-                    </button>
+            <!-- Payments Section -->
+            <section id="payments" class="section">
+                <h2>Thanh Toán</h2>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mã GD</th>
+                                <th>Thời gian</th>
+                                <th>Số tiền</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="payments-table"></tbody>
+                    </table>
                 </div>
-            </div>
+            </section>
+        </main>
+    </div>
 
-            <!-- Bảng thanh toán -->
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Khách hàng</th>
-                            <th>Số tiền</th>
-                            <th>Ngày</th>
-                            <th>Phương thức</th>
-                            <th>Trạng thái</th>
-                            <th>Thao tác</th>
-                        </tr>
-                    </thead>
-                    <tbody id="payment-table"></tbody>
-                </table>
-            </div>
-
-            <!-- Modal thêm/sửa thanh toán -->
-            <div id="payment-modal" class="modal">
-                <div class="modal-content">
-                    <h2 id="payment-modal-title">Thêm thanh toán mới</h2>
-                    <form id="payment-form" onsubmit="handlePaymentSubmit(event)">
-                        <div class="form-group">
-                            <label for="customer">Khách hàng *</label>
-                            <input type="text" id="customer" name="customer" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="amount">Số tiền *</label>
-                            <input type="number" id="amount" name="amount" min="0" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="method">Phương thức thanh toán *</label>
-                            <select id="method" name="method" required>
-                                <option value="cash">Tiền mặt</option>
-                                <option value="bank">Chuyển khoản</option>
-                                <option value="card">Thẻ tín dụng</option>
-                                <option value="e-wallet">Ví điện tử</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="status">Trạng thái *</label>
-                            <select id="status" name="status" required>
-                                <option value="completed">Đã thanh toán</option>
-                                <option value="pending">Chờ xử lý</option>
-                                <option value="failed">Thất bại</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="note">Ghi chú</label>
-                            <textarea id="note" name="note" rows="3"></textarea>
-                        </div>
-                        <div class="form-actions">
-                            <button type="button" onclick="document.getElementById('payment-modal').style.display='none'" class="btn">Hủy</button>
-                            <button type="submit" class="btn primary-btn">Lưu</button>
-                        </div>
-                    </form>
+    <!-- Device Form Modal -->
+    <div id="device-form-modal" class="modal">
+        <div class="modal-content">
+            <h2 id="device-form-title">Thêm thiết bị mới</h2>
+            <form id="device-form" onsubmit="handleDeviceSubmit(event)">
+                <div class="form-group">
+                    <label for="device-name">Tên thiết bị</label>
+                    <input type="text" id="device-name" required>
                 </div>
-            </div>
-
-            <!-- Modal xem chi tiết thanh toán -->
-            <div id="view-payment-modal" class="modal"></div>
+                <div class="form-group">
+                    <label for="device-category">Danh mục</label>
+                    <select id="device-category" required>
+                        <option value="laptop">Laptop</option>
+                        <option value="desktop">Desktop</option>
+                        <option value="printer">Máy in</option>
+                        <option value="network">Thiết bị mạng</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="device-quantity">Số lượng</label>
+                    <input type="number" id="device-quantity" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="device-price">Đơn giá</label>
+                    <input type="number" id="device-price" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="device-threshold">Ngưỡng cảnh báo</label>
+                    <input type="number" id="device-threshold" min="1">
+                </div>
+                <div class="form-group">
+                    <label for="device-description">Mô tả</label>
+                    <textarea id="device-description"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn primary-btn">Lưu</button>
+                    <button type="button" class="btn" onclick="closeDeviceForm()">Hủy</button>
+                </div>
+            </form>
         </div>
     </div>
 
-    <!-- SCRIPT -->
+    <!-- Device Detail Modal -->
+    <div id="device-detail-modal" class="modal">
+        <div class="modal-content">
+            <h2>Chi tiết thiết bị</h2>
+            <div class="device-detail-content"></div>
+            <div class="modal-actions">
+                <button class="btn" onclick="closeDeviceDetail()">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Settings Modal -->
+    <div id="alert-settings-modal" class="modal">
+        <div class="modal-content">
+            <h2>Cài đặt cảnh báo</h2>
+            <div class="alert-filters">
+                <div class="filter-group">
+                    <label>Loại cảnh báo:</label>
+                    <select id="alert-type-filter">
+                        <option value="all">Tất cả</option>
+                        <option value="low-stock">Hết hàng</option>
+                        <option value="inventory">Tồn kho</option>
+                        <option value="transaction">Giao dịch</option>
+                        <option value="system">Hệ thống</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Mức độ:</label>
+                    <select id="alert-severity-filter">
+                        <option value="all">Tất cả</option>
+                        <option value="high">Cao</option>
+                        <option value="medium">Trung bình</option>
+                        <option value="low">Thấp</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn primary-btn" onclick="saveAlertSettings()">Lưu</button>
+                <button class="btn" onclick="closeAlertSettings()">Hủy</button>
+            </div>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>
