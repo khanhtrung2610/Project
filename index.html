@@ -514,13 +514,19 @@
                         <thead>
                             <tr>
                                 <th>Mã thanh toán</th>
-                                <th>Ngày</th>
+                                <th>Mã giao dịch</th>
                                 <th>Số tiền</th>
+                                <th>Ngày</th>
+                                <th>Loại</th>
                                 <th>Trạng thái</th>
+                                <th>Phương thức</th>
+                                <th>Ghi chú</th>
                                 <th>Thao tác</th>
                             </tr>
                         </thead>
-                        <tbody id="payments-table"></tbody>
+                        <tbody id="payments-table">
+                            <!-- Nội dung bảng sẽ được điền bởi JavaScript -->
+                        </tbody>
                     </table>
                 </div>
             </section>
@@ -666,6 +672,14 @@
             </form>
         </div>
     </div>
+
+    <div id="paymentModal" class="modal">
+        <!-- Modal content will be dynamically inserted here by JavaScript -->
+    </div>
+
+    <button class="theme-toggle" onclick="toggleTheme()">
+        <i class="fas fa-moon"></i>
+    </button>
 
     <script src="script.js"></script>
     <script>

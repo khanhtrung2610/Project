@@ -439,6 +439,7 @@ function updateCharts() {
 document.addEventListener('DOMContentLoaded', () => {
     initializeNavigation();
     loadInitialData();
+    loadSavedTheme();
 });
 
 // Xử lý Navigation
@@ -665,38 +666,50 @@ function handleDeviceSearch() {
 
 // Xử lý Alerts
 function updateAlerts() {
-    const alertsContainer = document.querySelector('.alerts-list');
-    if (!alertsContainer) return;
+    const alertsList = document.getElementById('alerts-list');
+    if (!alertsList) return;
 
-    const unreadCount = alerts.filter(alert => !alert.read).length;
-    updateUnreadBadge(unreadCount);
-
-    alertsContainer.innerHTML = alerts.map(alert => `
-        <div class="alert-item ${alert.read ? '' : 'unread'}">
-            <div class="alert-icon ${alert.severity}">
-                ${getAlertIcon(alert.type)}
+    if (alerts.length === 0) {
+        alertsList.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-bell-slash"></i>
+                <p>Không có cảnh báo nào</p>
             </div>
-            <div class="alert-content">
-                <div class="alert-header">
-                    <span class="alert-title">${alert.title}</span>
-                    <span class="alert-time">${formatTimestamp(alert.timestamp)}</span>
+        `;
+    } else {
+        alertsList.innerHTML = alerts.map(alert => `
+            <div class="alert-item ${alert.read ? '' : 'unread'} ${alert.severity}" 
+                 onclick="viewAlertDetail('${alert.id}')">
+                <div class="alert-icon ${alert.severity}">
+                    <i class="fas ${getAlertIcon(alert.severity)}"></i>
                 </div>
-                <div class="alert-message">${alert.message}</div>
-                <div class="alert-actions">
-                    ${!alert.read ? `
-                        <button onclick="markAlertRead('${alert.id}')" class="btn">
-                            <i class="fas fa-check"></i> Đánh dấu đã đọc
-                        </button>
-                    ` : ''}
-                    ${alert.deviceId ? `
-                        <button onclick="viewDevice('${alert.deviceId}')" class="btn">
-                            <i class="fas fa-eye"></i> Xem thiết bị
-                        </button>
-                    ` : ''}
+                <div class="alert-content">
+                    <div class="alert-header">
+                        <span class="alert-title">${alert.title || alert.deviceName}</span>
+                        <span class="alert-time">${formatDate(alert.timestamp || alert.date)}</span>
+                    </div>
+                    <div class="alert-message">${alert.message}</div>
                 </div>
             </div>
-        </div>
-    `).join('');
+        `).join('');
+    }
+
+    // Cập nhật số lượng cảnh báo chưa đọc
+    const unreadCount = alerts.filter(a => !a.read).length;
+    const alertsBadge = document.querySelector('.alerts-badge');
+    if (alertsBadge) {
+        alertsBadge.textContent = unreadCount;
+        alertsBadge.style.display = unreadCount > 0 ? 'flex' : 'none';
+    }
+}
+
+function getAlertIcon(severity) {
+    const iconMap = {
+        'high': 'fa-exclamation-triangle',
+        'medium': 'fa-exclamation-circle',
+        'low': 'fa-info-circle'
+    };
+    return iconMap[severity] || 'fa-bell';
 }
 
 function closeModal(modalId) {
@@ -759,61 +772,50 @@ function createAlert(alertData) {
 
 // Cập nhật giao diện cảnh báo
 function updateAlerts() {
-    const alertsContainer = document.querySelector('.alerts-list');
-    if (!alertsContainer) return;
+    const alertsList = document.getElementById('alerts-list');
+    if (!alertsList) return;
 
-    const unreadCount = alerts.filter(alert => !alert.read).length;
-    updateUnreadBadge(unreadCount);
-
-    alertsContainer.innerHTML = alerts.map(alert => `
-        <div class="alert-item ${alert.read ? '' : 'unread'}">
-            <div class="alert-icon ${alert.severity}">
-                ${getAlertIcon(alert.type)}
+    if (alerts.length === 0) {
+        alertsList.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-bell-slash"></i>
+                <p>Không có cảnh báo nào</p>
             </div>
-            <div class="alert-content">
-                <div class="alert-header">
-                    <span class="alert-title">${alert.title}</span>
-                    <span class="alert-time">${formatTimestamp(alert.timestamp)}</span>
+        `;
+    } else {
+        alertsList.innerHTML = alerts.map(alert => `
+            <div class="alert-item ${alert.read ? '' : 'unread'} ${alert.severity}" 
+                 onclick="viewAlertDetail('${alert.id}')">
+                <div class="alert-icon ${alert.severity}">
+                    <i class="fas ${getAlertIcon(alert.severity)}"></i>
                 </div>
-                <div class="alert-message">${alert.message}</div>
-                <div class="alert-actions">
-                    ${!alert.read ? `
-                        <button onclick="markAlertRead('${alert.id}')" class="btn">
-                            <i class="fas fa-check"></i> Đánh dấu đã đọc
-                        </button>
-                    ` : ''}
-                    ${alert.deviceId ? `
-                        <button onclick="viewDevice('${alert.deviceId}')" class="btn">
-                            <i class="fas fa-eye"></i> Xem thiết bị
-                        </button>
-                    ` : ''}
+                <div class="alert-content">
+                    <div class="alert-header">
+                        <span class="alert-title">${alert.title || alert.deviceName}</span>
+                        <span class="alert-time">${formatDate(alert.timestamp || alert.date)}</span>
+                    </div>
+                    <div class="alert-message">${alert.message}</div>
                 </div>
             </div>
-        </div>
-    `).join('');
-}
+        `).join('');
+    }
 
-// Cập nhật badge số thông báo chưa đọc
-function updateUnreadBadge(count) {
-    const badge = document.querySelector('.alerts-badge');
-    if (badge) {
-        badge.textContent = count;
-        badge.style.display = count > 0 ? 'block' : 'none';
+    // Cập nhật số lượng cảnh báo chưa đọc
+    const unreadCount = alerts.filter(a => !a.read).length;
+    const alertsBadge = document.querySelector('.alerts-badge');
+    if (alertsBadge) {
+        alertsBadge.textContent = unreadCount;
+        alertsBadge.style.display = unreadCount > 0 ? 'flex' : 'none';
     }
 }
 
-// Lấy icon cho từng loại cảnh báo
-function getAlertIcon(type) {
-    switch (type) {
-        case ALERT_TYPES.LOW_STOCK:
-            return '<i class="fas fa-exclamation-triangle"></i>';
-        case ALERT_TYPES.INVENTORY_MISMATCH:
-            return '<i class="fas fa-balance-scale"></i>';
-        case ALERT_TYPES.LARGE_CHANGE:
-            return '<i class="fas fa-chart-line"></i>';
-        default:
-            return '<i class="fas fa-bell"></i>';
-    }
+function getAlertIcon(severity) {
+    const iconMap = {
+        'high': 'fa-exclamation-triangle',
+        'medium': 'fa-exclamation-circle',
+        'low': 'fa-info-circle'
+    };
+    return iconMap[severity] || 'fa-bell';
 }
 
 // Format timestamp
@@ -1482,7 +1484,7 @@ function updatePaymentsTable() {
             </td>
             <td>
                 <span class="status-badge status-${payment.status}">
-                    ${getStatusText(payment.status)}
+                    ${getPaymentStatusText(payment.status)}
                 </span>
             </td>
             <td>
@@ -1499,7 +1501,7 @@ function updatePaymentsTable() {
                     <i class="fas fa-edit"></i>
                 </button>
             </td>
-                </tr>
+        </tr>
     `).join('');
 
     // Cập nhật phân trang
@@ -1874,8 +1876,7 @@ function importPaymentsFromExcel() {
                 currentPage = 1;
                 
                 // Cập nhật UI
-                updatePaymentsTable();
-                updatePaymentStats();
+                loadPaymentsSection();
                 
                 showNotification(`Đã import ${newPayments.length} thanh toán thành công`, 'success');
             } catch (error) {
@@ -2014,3 +2015,211 @@ function getPaymentMethodText(method) {
 // Export các hàm mới
 window.getPaymentStatusText = getPaymentStatusText;
 window.getPaymentMethodText = getPaymentMethodText;
+
+function createPayment() {
+    // Hiển thị modal tạo payment
+    const modal = document.getElementById('paymentModal');
+    if (!modal) {
+        showNotification('Không tìm thấy modal thanh toán', 'error');
+        return;
+    }
+
+    // Tạo nội dung modal với form
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h2 id="paymentModalTitle">Tạo Phiếu Thu Mới</h2>
+            <form id="paymentForm">
+                <div class="form-group">
+                    <label>Số tiền</label>
+                    <input type="number" id="paymentAmount" required min="0">
+                </div>
+                <div class="form-group">
+                    <label>Phương thức thanh toán</label>
+                    <select id="paymentMethod" required>
+                        <option value="">Chọn phương thức</option>
+                        <option value="cash">Tiền mặt</option>
+                        <option value="bank_transfer">Chuyển khoản</option>
+                        <option value="credit_card">Thẻ tín dụng</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Trạng thái</label>
+                    <select id="paymentStatus" required>
+                        <option value="">Chọn trạng thái</option>
+                        <option value="pending">Chờ xử lý</option>
+                        <option value="completed">Hoàn thành</option>
+                        <option value="cancelled">Đã hủy</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Ghi chú</label>
+                    <textarea id="paymentDescription"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="submitPayment" class="btn primary-btn" onclick="handleCreatePayment()">
+                        <i class="fas fa-save"></i> Tạo
+                    </button>
+                    <button type="button" class="btn" onclick="closeModal('paymentModal')">
+                        <i class="fas fa-times"></i> Hủy
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+    
+    modal.style.display = 'block';
+}
+
+function handleCreatePayment() {
+    // Lấy dữ liệu từ form
+    const amount = document.getElementById('paymentAmount').value;
+    const method = document.getElementById('paymentMethod').value;
+    const status = document.getElementById('paymentStatus').value;
+    const description = document.getElementById('paymentDescription').value;
+    
+    // Validate dữ liệu
+    if (!amount || !method || !status) {
+        alert('Vui lòng điền đầy đủ thông tin!');
+        return;
+    }
+
+    // Tạo payment mới
+    const newPayment = {
+        id: generatePaymentId(),
+        amount: parseFloat(amount),
+        method: method,
+        status: status,
+        description: description,
+        date: new Date().toISOString(),
+        createdBy: JSON.parse(sessionStorage.getItem('currentUser')).username
+    };
+
+    // Thêm vào danh sách payments
+    payments.unshift(newPayment);
+
+    // Cập nhật UI
+    updatePaymentStats();
+    updatePaymentsTable();
+
+    // Đóng modal
+    const modal = document.getElementById('paymentModal');
+    modal.style.display = 'none';
+
+    // Hiển thị thông báo
+    showNotification('Tạo phiếu thu thành công!', 'success');
+}
+
+// Theme handling
+function toggleTheme() {
+    const body = document.body;
+    const themeIcon = document.querySelector('.theme-toggle i');
+    
+    if (body.getAttribute('data-theme') === 'dark') {
+        body.removeAttribute('data-theme');
+        themeIcon.classList.remove('fa-sun');
+        themeIcon.classList.add('fa-moon');
+        localStorage.setItem('theme', 'light');
+    } else {
+        body.setAttribute('data-theme', 'dark');
+        themeIcon.classList.remove('fa-moon');
+        themeIcon.classList.add('fa-sun');
+        localStorage.setItem('theme', 'dark');
+    }
+
+    // Cập nhật lại các biểu đồ
+    updateCharts();
+}
+
+// Load saved theme
+function loadSavedTheme() {
+    const savedTheme = localStorage.getItem('theme');
+    const themeIcon = document.querySelector('.theme-toggle i');
+    
+    if (savedTheme === 'dark') {
+        document.body.setAttribute('data-theme', 'dark');
+        themeIcon.classList.remove('fa-moon');
+        themeIcon.classList.add('fa-sun');
+    }
+}
+
+function viewAlertDetail(alertId) {
+    // Tìm cảnh báo theo ID
+    const alert = alerts.find(a => a.id === alertId);
+    if (!alert) return;
+
+    // Ẩn phần "no alert selected"
+    const noAlertSelected = document.querySelector('.no-alert-selected');
+    if (noAlertSelected) {
+        noAlertSelected.style.display = 'none';
+    }
+
+    // Hiển thị và cập nhật nội dung chi tiết
+    const detailContent = document.getElementById('alert-detail-content');
+    if (detailContent) {
+        detailContent.style.display = 'flex';
+        
+        // Cập nhật các thông tin
+        detailContent.querySelector('.alert-title').textContent = alert.title || alert.deviceName;
+        detailContent.querySelector('.alert-timestamp').textContent = formatDate(alert.timestamp || alert.date);
+        detailContent.querySelector('.alert-type').textContent = getAlertTypeText(alert.type);
+        detailContent.querySelector('.alert-severity').textContent = getSeverityText(alert.severity);
+        detailContent.querySelector('.alert-device').textContent = alert.deviceName;
+        detailContent.querySelector('.alert-message').textContent = alert.message;
+
+        // Cập nhật trạng thái các nút
+        const viewDeviceBtn = detailContent.querySelector('.view-device-btn');
+        if (viewDeviceBtn) {
+            viewDeviceBtn.onclick = () => viewDeviceDetail(alert.deviceId);
+        }
+
+        const markReadBtn = detailContent.querySelector('.mark-read-btn');
+        if (markReadBtn) {
+            markReadBtn.onclick = () => markAlertRead(alert.id);
+        }
+
+        // Đánh dấu item được chọn trong danh sách
+        const alertItems = document.querySelectorAll('.alert-item');
+        alertItems.forEach(item => item.classList.remove('selected'));
+        const selectedItem = document.querySelector(`.alert-item[onclick*="${alertId}"]`);
+        if (selectedItem) {
+            selectedItem.classList.add('selected');
+        }
+    }
+}
+
+function getAlertTypeText(type) {
+    const typeMap = {
+        'low-stock': 'Sắp hết hàng',
+        'inventory': 'Tồn kho',
+        'system': 'Hệ thống',
+        'transaction': 'Giao dịch'
+    };
+    return typeMap[type] || type;
+}
+
+function getSeverityText(severity) {
+    const severityMap = {
+        'high': 'Cao',
+        'medium': 'Trung bình',
+        'low': 'Thấp'
+    };
+    return severityMap[severity] || severity;
+}
+
+function markAlertAsRead(alertId) {
+    // Tìm và cập nhật trạng thái của cảnh báo
+    const alert = alerts.find(a => a.id === alertId);
+    if (alert) {
+        alert.read = true;
+        // Cập nhật UI
+        updateAlerts();
+        // Đóng modal
+        closeModal('alertDetailModal');
+        // Hiển thị thông báo
+        showNotification('Đã đánh dấu cảnh báo là đã đọc', 'success');
+    }
+}
+
+// Export các hàm mới
+window.viewAlertDetail = viewAlertDetail;
+window.markAlertAsRead = markAlertAsRead;

@@ -5,9 +5,15 @@ let currentUser = null;
 const users = [
     {
         username: 'admin',
-        password: 'admin123', // Trong thực tế nên hash password
+        password: 'admin'
     }
 ];
+
+const sampleUsers = {
+    'admin': {
+        password: 'admin'
+    }
+};
 
 // Xử lý form đăng nhập
 document.getElementById('loginForm').addEventListener('submit', function(e) {
