@@ -870,6 +870,9 @@ function updateHistoryTable() {
                 <button onclick="viewHistoryDetail('${item.id}')" class="btn view-btn">
                     <i class="fas fa-eye"></i>
                 </button>
+                <button onclick="viewPaymentByTransaction('${item.id}')" class="btn payment-btn">
+                    <i class="fas fa-money-bill"></i>
+                </button>
             </td>
         </tr>
     `).join('');
@@ -884,6 +887,9 @@ function viewHistoryDetail(historyId) {
 
     const modal = document.getElementById('history-detail-modal');
     if (!modal) return;
+
+    // Tìm thông tin thanh toán liên quan
+    const relatedPayment = payments.find(p => p.transactionId === item.id);
 
     modal.innerHTML = `
         <div class="modal-content">
@@ -919,8 +925,21 @@ function viewHistoryDetail(historyId) {
                     <label>Ghi chú:</label>
                     <span>${item.note}</span>
                 </div>
+                ${relatedPayment ? `
+                <div class="info-group payment-info">
+                    <label>Trạng thái thanh toán:</label>
+                    <span class="status-badge ${relatedPayment.status}">
+                        ${getPaymentStatusText(relatedPayment.status)}
+                    </span>
+                </div>
+                ` : ''}
             </div>
             <div class="modal-actions">
+                ${relatedPayment ? `
+                <button onclick="viewPaymentDetail('${relatedPayment.id}')" class="btn payment-btn">
+                    <i class="fas fa-money-bill"></i> Xem thanh toán
+                </button>
+                ` : ''}
                 <button onclick="closeModal('history-detail-modal')" class="btn">
                     <i class="fas fa-times"></i> Đóng
                 </button>
@@ -929,6 +948,15 @@ function viewHistoryDetail(historyId) {
     `;
     
     modal.style.display = 'block';
+}
+
+function viewPaymentByTransaction(transactionId) {
+    const payment = payments.find(p => p.transactionId === transactionId);
+    if (payment) {
+        viewPaymentDetail(payment.id);
+    } else {
+        showNotification('Không tìm thấy thông tin thanh toán', 'warning');
+    }
 }
 
 function applyHistoryFilters() {

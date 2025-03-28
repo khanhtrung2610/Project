@@ -188,77 +188,48 @@
                         <button onclick="addTransaction('import')" class="btn primary-btn">
                             <i class="fas fa-plus"></i> Nhập kho
                         </button>
-                        <button onclick="addTransaction('export')" class="btn primary-btn">
+                        <button onclick="addTransaction('export')" class="btn secondary-btn">
                             <i class="fas fa-minus"></i> Xuất kho
                         </button>
                     </div>
                 </div>
 
-                <div class="transaction-stats">
-                    <div class="stats-cards">
-                        <div class="stats-card">
-                            <h3>Nhập kho tháng này</h3>
-                            <p id="monthly-import">0</p>
+                <div class="stats-container">
+                    <div class="stat-card">
+                        <i class="fas fa-file-import"></i>
+                        <div class="stat-info">
+                            <span class="stat-value" id="monthly-import">0</span>
+                            <span class="stat-label">Nhập kho tháng này</span>
                         </div>
-                        <div class="stats-card">
-                            <h3>Xuất kho tháng này</h3>
-                            <p id="monthly-export">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-file-export"></i>
+                        <div class="stat-info">
+                            <span class="stat-value" id="monthly-export">0</span>
+                            <span class="stat-label">Xuất kho tháng này</span>
                         </div>
-                        <div class="stats-card">
-                            <h3>Tổng giá trị nhập</h3>
-                            <p id="total-import-value">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <div class="stat-info">
+                            <span class="stat-value" id="total-import-value">0₫</span>
+                            <span class="stat-label">Tổng giá trị nhập</span>
                         </div>
-                        <div class="stats-card">
-                            <h3>Tổng giá trị xuất</h3>
-                            <p id="total-export-value">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <div class="stat-info">
+                            <span class="stat-value" id="total-export-value">0₫</span>
+                            <span class="stat-label">Tổng giá trị xuất</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="transaction-filters">
-                    <div class="search-box">
-                        <input type="text" id="transaction-search" placeholder="Tìm kiếm giao dịch...">
+                <div class="transaction-form-container">
+                    <div class="form-instructions">
+                        <p>Chọn "Nhập kho" hoặc "Xuất kho" từ các nút phía trên để bắt đầu giao dịch mới.</p>
+                        <p>Sau khi hoàn thành, bạn có thể xem lịch sử giao dịch trong mục "Lịch sử".</p>
                     </div>
-                    <div class="filter-group">
-                        <select id="transaction-type-filter">
-                            <option value="all">Tất cả loại</option>
-                            <option value="import">Nhập kho</option>
-                            <option value="export">Xuất kho</option>
-                        </select>
-                        <select id="transaction-status-filter">
-                            <option value="all">Tất cả trạng thái</option>
-                            <option value="pending">Chờ xử lý</option>
-                            <option value="completed">Hoàn thành</option>
-                            <option value="cancelled">Đã hủy</option>
-                        </select>
-                    </div>
-                    <div class="date-filters">
-                        <input type="date" id="transaction-start-date">
-                        <span>đến</span>
-                        <input type="date" id="transaction-end-date">
-                    </div>
-                    <button onclick="resetTransactionFilters()" class="btn">
-                        <i class="fas fa-redo"></i> Đặt lại
-                    </button>
-                </div>
-
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Mã GD</th>
-                                <th>Loại</th>
-                                <th>Thiết bị</th>
-                                <th>Số lượng</th>
-                                <th>Đơn giá</th>
-                                <th>Thành tiền</th>
-                                <th>Ngày</th>
-                                <th>Trạng thái</th>
-                                <th>Thao tác</th>
-                            </tr>
-                        </thead>
-                        <tbody id="transactions-table"></tbody>
-                    </table>
                 </div>
             </section>
 
@@ -266,14 +237,6 @@
             <section id="history" class="section">
                 <div class="section-header">
                     <h2><i class="fas fa-history"></i> Lịch Sử Nhập/Xuất Kho</h2>
-                    <div class="header-actions">
-                        <button onclick="addTransaction('import')" class="btn primary-btn">
-                            <i class="fas fa-plus"></i> Nhập kho
-                        </button>
-                        <button onclick="addTransaction('export')" class="btn primary-btn">
-                            <i class="fas fa-minus"></i> Xuất kho
-                        </button>
-                    </div>
                 </div>
 
                 <div class="history-stats">
