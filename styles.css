@@ -2082,3 +2082,81 @@ canvas {
         gap: 10px;
     }
 }
+
+.recent-transactions {
+    margin-top: 2rem;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 1.5rem;
+}
+
+.recent-transactions h3 {
+    margin-bottom: 1rem;
+    color: #333;
+    font-size: 1.2rem;
+}
+
+.recent-transactions .table-container {
+    overflow-x: auto;
+}
+
+.recent-transactions table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.recent-transactions th {
+    background: #f8f9fa;
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    color: #495057;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.recent-transactions td {
+    padding: 12px;
+    border-bottom: 1px solid #dee2e6;
+    color: #495057;
+}
+
+.recent-transactions tr:hover {
+    background-color: #f8f9fa;
+}
+
+.recent-transactions .status-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.recent-transactions .status-completed {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+}
+
+.recent-transactions .status-pending {
+    background-color: #fff3e0;
+    color: #ef6c00;
+}
+
+.recent-transactions .status-cancelled {
+    background-color: #ffebee;
+    color: #c62828;
+}
+
+.recent-transactions .transaction-type {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.recent-transactions .transaction-type.import {
+    color: #2e7d32;
+}
+
+.recent-transactions .transaction-type.export {
+    color: #c62828;
+}

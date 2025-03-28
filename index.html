@@ -7,6 +7,9 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
     <div class="main-container">
@@ -89,7 +92,23 @@
 
             <!-- Devices Section -->
             <section id="devices" class="section">
-                <h2>Danh Mục Thiết Bị</h2>
+                <div class="section-header">
+                    <h2>Danh Mục Thiết Bị</h2>
+                    <div class="header-actions">
+                        <button onclick="importDevicesFromExcel()" class="btn secondary-btn">
+                            <i class="fas fa-file-import"></i> Import Excel
+                        </button>
+                        <button onclick="exportDevicesToExcel()" class="btn primary-btn">
+                            <i class="fas fa-file-excel"></i> Xuất Excel
+                        </button>
+                        <button onclick="exportDevicesToPDF()" class="btn secondary-btn">
+                            <i class="fas fa-file-pdf"></i> Xuất PDF
+                        </button>
+                        <button onclick="showAddDeviceModal()" class="btn primary-btn">
+                            <i class="fas fa-plus"></i> Thêm thiết bị
+                        </button>
+                    </div>
+                </div>
                 
                 <!-- Device Statistics -->
                 <div class="device-stats">
@@ -149,9 +168,6 @@
                             <option value="price">Sắp xếp theo giá</option>
                         </select>
                     </div>
-                    <button class="add-device-btn" onclick="showAddDeviceModal()">
-                        <i class="fas fa-plus"></i> Thêm thiết bị
-                    </button>
                 </div>
 
                 <!-- Device Table -->
@@ -231,12 +247,41 @@
                         <p>Sau khi hoàn thành, bạn có thể xem lịch sử giao dịch trong mục "Lịch sử".</p>
                     </div>
                 </div>
+
+                <div class="recent-transactions">
+                    <h3>Giao dịch gần đây</h3>
+                    <div class="table-container">
+                        <table id="recent-transactions-table">
+                            <thead>
+                                <tr>
+                                    <th>Thời gian</th>
+                                    <th>Loại</th>
+                                    <th>Thiết bị</th>
+                                    <th>Số lượng</th>
+                                    <th>Đơn giá</th>
+                                    <th>Thành tiền</th>
+                                    <th>Người thực hiện</th>
+                                    <th>Trạng thái</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
             </section>
 
             <!-- History Section -->
             <section id="history" class="section">
                 <div class="section-header">
                     <h2><i class="fas fa-history"></i> Lịch Sử Nhập/Xuất Kho</h2>
+                    <div class="header-actions">
+                        <button onclick="exportToExcel()" class="btn primary-btn">
+                            <i class="fas fa-file-excel"></i> Xuất Excel
+                        </button>
+                        <button onclick="exportToPDF()" class="btn secondary-btn">
+                            <i class="fas fa-file-pdf"></i> Xuất PDF
+                        </button>
+                    </div>
                 </div>
 
                 <div class="history-stats">
@@ -396,6 +441,15 @@
                 <div class="section-header">
                     <h2><i class="fas fa-money-bill"></i> Thanh Toán</h2>
                     <div class="header-actions">
+                        <button onclick="importPaymentsFromExcel()" class="btn secondary-btn">
+                            <i class="fas fa-file-import"></i> Import Excel
+                        </button>
+                        <button onclick="exportPaymentsToExcel()" class="btn primary-btn">
+                            <i class="fas fa-file-excel"></i> Xuất Excel
+                        </button>
+                        <button onclick="exportPaymentsToPDF()" class="btn secondary-btn">
+                            <i class="fas fa-file-pdf"></i> Xuất PDF
+                        </button>
                         <button onclick="createPayment()" class="btn primary-btn">
                             <i class="fas fa-plus"></i> Tạo thanh toán
                         </button>

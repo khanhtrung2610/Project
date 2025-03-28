@@ -2,6 +2,7 @@
 let currentSection = 'dashboard';
 let devices = [];
 let alerts = [];
+let transactions = [];
 let currentPage = 1;
 const itemsPerPage = 10;
 
@@ -12,6 +13,14 @@ let paymentFilters = {
     status: 'all',
     method: 'all',
     searchTerm: ''
+};
+
+// Thêm biến lọc thiết bị
+let deviceFilters = {
+    searchTerm: '',
+    category: '',
+    status: '',
+    sortBy: 'name'
 };
 
 // Các hàm tiện ích
@@ -94,31 +103,37 @@ const mockAlerts = [
     }
 ];
 
-// Mock data cho lịch sử
-const mockHistory = [
+// Mock data cho giao dịch
+const mockTransactions = [
     {
-        id: 'H001',
+        id: 'T001',
         type: 'import',
         deviceId: 'D001',
         deviceName: 'Laptop Dell XPS',
         quantity: 5,
+        price: 25000000,
+        totalAmount: 125000000,
         date: new Date('2024-03-20'),
         user: 'Admin',
+        status: 'COMPLETED',
         note: 'Nhập hàng mới'
     },
     {
-        id: 'H002',
+        id: 'T002',
         type: 'export',
         deviceId: 'D002',
         deviceName: 'Máy in HP LaserJet',
         quantity: 2,
+        price: 5000000,
+        totalAmount: 10000000,
         date: new Date('2024-03-21'),
         user: 'Admin',
+        status: 'COMPLETED',
         note: 'Xuất cho phòng kế toán'
     }
 ];
 
-let history = [...mockHistory];
+let history = [...mockTransactions];
 let historyFilters = {
     startDate: null,
     endDate: null,
@@ -436,11 +451,13 @@ async function loadInitialData() {
         // Trong môi trường development, sử dụng mock data
         devices = mockDevices;
         alerts = mockAlerts;
+        transactions = mockTransactions;
 
         // Cập nhật UI
         updateDashboardStats();
         updateDevicesTable();
         updateAlerts();
+        updateRecentTransactionsTable();
     } catch (error) {
         console.error('Error loading initial data:', error);
         showNotification('Không thể tải dữ liệu ban đầu', 'error');
@@ -455,6 +472,7 @@ async function loadSectionData(section) {
                 updateCharts();
                 break;
             case 'devices':
+                handleDeviceSearch(); // Thêm khởi tạo tìm kiếm
                 updateDevicesTable();
                 break;
             case 'alerts':
@@ -508,10 +526,52 @@ function updateDevicesTable() {
     const tbody = document.querySelector('#devices-table');
     if (!tbody) return;
 
+    // Lọc thiết bị theo điều kiện
+    let filteredDevices = devices.filter(device => {
+        // Lọc theo từ khóa tìm kiếm
+        if (deviceFilters.searchTerm) {
+            const searchTerm = deviceFilters.searchTerm.toLowerCase();
+            return device.name.toLowerCase().includes(searchTerm) ||
+                   device.id.toLowerCase().includes(searchTerm) ||
+                   device.category.toLowerCase().includes(searchTerm);
+        }
+        return true;
+    });
+
+    // Lọc theo danh mục
+    if (deviceFilters.category) {
+        filteredDevices = filteredDevices.filter(device => 
+            device.category === deviceFilters.category
+        );
+    }
+
+    // Lọc theo trạng thái
+    if (deviceFilters.status) {
+        filteredDevices = filteredDevices.filter(device => 
+            getDeviceStatus(device) === deviceFilters.status
+        );
+    }
+
+    // Sắp xếp thiết bị
+    filteredDevices.sort((a, b) => {
+        switch (deviceFilters.sortBy) {
+            case 'name':
+                return a.name.localeCompare(b.name);
+            case 'quantity':
+                return b.quantity - a.quantity;
+            case 'price':
+                return b.price - a.price;
+            default:
+                return 0;
+        }
+    });
+
+    // Phân trang
     const start = (currentPage - 1) * itemsPerPage;
     const end = start + itemsPerPage;
-    const pageDevices = devices.slice(start, end);
+    const pageDevices = filteredDevices.slice(start, end);
 
+    // Cập nhật bảng
     tbody.innerHTML = pageDevices.map(device => `
         <tr>
             <td>${device.id}</td>
@@ -538,7 +598,48 @@ function updateDevicesTable() {
         </tr>
     `).join('');
 
-    updatePagination();
+    // Cập nhật phân trang
+    updatePagination(filteredDevices.length);
+}
+
+// Thêm hàm xử lý tìm kiếm thiết bị
+function handleDeviceSearch() {
+    const searchInput = document.getElementById('device-search');
+    const categoryFilter = document.getElementById('category-filter');
+    const statusFilter = document.getElementById('status-filter');
+    const sortBy = document.getElementById('sort-by');
+
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            deviceFilters.searchTerm = e.target.value;
+            currentPage = 1; // Reset về trang 1 khi tìm kiếm
+            updateDevicesTable();
+        });
+    }
+
+    if (categoryFilter) {
+        categoryFilter.addEventListener('change', (e) => {
+            deviceFilters.category = e.target.value;
+            currentPage = 1; // Reset về trang 1 khi lọc
+            updateDevicesTable();
+        });
+    }
+
+    if (statusFilter) {
+        statusFilter.addEventListener('change', (e) => {
+            deviceFilters.status = e.target.value;
+            currentPage = 1; // Reset về trang 1 khi lọc
+            updateDevicesTable();
+        });
+    }
+
+    if (sortBy) {
+        sortBy.addEventListener('change', (e) => {
+            deviceFilters.sortBy = e.target.value;
+            currentPage = 1; // Reset về trang 1 khi sắp xếp
+            updateDevicesTable();
+        });
+    }
 }
 
 // Xử lý Alerts
@@ -970,17 +1071,27 @@ function applyHistoryFilters() {
 }
 
 function resetHistoryFilters() {
-    const filterForm = document.getElementById('history-filters');
-    if (filterForm) {
-        filterForm.reset();
-        historyFilters = {
-            startDate: null,
-            endDate: null,
-            type: 'all',
-            searchTerm: ''
-        };
-        updateHistoryTable();
-    }
+    // Reset các input và select
+    const startDateInput = document.getElementById('start-date');
+    const endDateInput = document.getElementById('end-date');
+    const typeSelect = document.getElementById('transaction-type');
+    const searchInput = document.getElementById('history-search');
+
+    if (startDateInput) startDateInput.value = '';
+    if (endDateInput) endDateInput.value = '';
+    if (typeSelect) typeSelect.value = 'all';
+    if (searchInput) searchInput.value = '';
+
+    // Reset bộ lọc
+    historyFilters = {
+        startDate: null,
+        endDate: null,
+        type: 'all',
+        searchTerm: ''
+    };
+
+    // Cập nhật bảng
+    updateHistoryTable();
 }
 
 // Thêm hàm xử lý nhập/xuất kho
@@ -1024,423 +1135,47 @@ function addTransaction(type) {
     modal.style.display = 'block';
 }
 
-function handleTransactionSubmit(event, type) {
+async function handleTransactionSubmit(event, type) {
     event.preventDefault();
     const form = event.target;
+    const formData = new FormData(form);
     
-    const deviceId = form.deviceId.value;
-    const device = devices.find(d => d.id === deviceId);
-    if (!device) {
-        showNotification('Không tìm thấy thiết bị', 'error');
-        return;
-    }
+    try {
+        const transactionData = {
+            id: generateTransactionId(),
+            type,
+            deviceId: formData.get('deviceId'),
+            deviceName: getDeviceName(formData.get('deviceId')),
+            quantity: parseInt(formData.get('quantity')),
+            price: parseFloat(formData.get('price')),
+            totalAmount: parseFloat(formData.get('totalAmount')),
+            date: new Date().toISOString(),
+            user: 'Admin', // Thay thế bằng user thực tế
+            status: 'COMPLETED',
+            note: formData.get('note')
+        };
 
-    const quantity = parseInt(form.quantity.value);
-    
-    // Kiểm tra số lượng xuất kho
-    if (type === 'export' && quantity > device.quantity) {
-        showNotification('Số lượng xuất vượt quá tồn kho', 'error');
-        return;
-    }
+        // Thêm giao dịch mới vào mảng transactions
+        transactions.unshift(transactionData);
 
-    // Cập nhật số lượng thiết bị
-    device.quantity += type === 'import' ? quantity : -quantity;
+        // Cập nhật số lượng thiết bị
+        updateDeviceQuantity(transactionData);
 
-    // Thêm vào lịch sử
-    const transaction = {
-        id: 'H' + Date.now(),
-        type,
-        deviceId,
-        deviceName: device.name,
-        quantity,
-        date: new Date(),
-        user: 'Admin', // Trong thực tế sẽ lấy từ user đang đăng nhập
-        note: form.note.value
-    };
+        // Cập nhật UI
+        updateRecentTransactionsTable();
+        updateTransactionStats();
+        updateHistoryTable();
+        updateDevicesTable();
 
-    history.unshift(transaction);
-
-    // Cập nhật UI
-    updateDevicesTable();
-    updateHistoryTable();
-    updateDashboardStats();
-    
-    closeModal('transaction-modal');
-    showNotification(
-        `${type === 'import' ? 'Nhập' : 'Xuất'} kho thành công: ${quantity} ${device.name}`,
-        'success'
-    );
-}
-
-// Export các hàm cần thiết
-window.addTransaction = addTransaction;
-window.handleTransactionSubmit = handleTransactionSubmit;
-window.viewHistoryDetail = viewHistoryDetail;
-window.applyHistoryFilters = applyHistoryFilters;
-window.resetHistoryFilters = resetHistoryFilters;
-
-// Xử lý phần thanh toán
-function loadPaymentsSection() {
-    updatePaymentStats();
-    updatePaymentsTable();
-}
-
-function updatePaymentStats() {
-    const today = new Date();
-    const thisMonth = payments.filter(p => {
-        const paymentDate = new Date(p.date);
-        return paymentDate.getMonth() === today.getMonth() &&
-               paymentDate.getFullYear() === today.getFullYear();
-    });
-
-    const totalAmount = thisMonth.reduce((sum, p) => sum + p.amount, 0);
-    const pendingAmount = thisMonth
-        .filter(p => p.status === PAYMENT_STATUS.PENDING)
-        .reduce((sum, p) => sum + p.amount, 0);
-
-    // Cập nhật thống kê
-    updateElement('total-payments', formatCurrency(totalAmount));
-    updateElement('pending-payments', formatCurrency(pendingAmount));
-    updateElement('payment-count', thisMonth.length);
-}
-
-function updatePaymentsTable() {
-    const tbody = document.querySelector('#payments-table');
-    if (!tbody) return;
-
-    // Lọc thanh toán theo điều kiện
-    let filteredPayments = payments.filter(payment => {
-        // Lọc theo trạng thái
-        if (paymentFilters.status !== 'all' && payment.status !== paymentFilters.status) return false;
+        // Đóng modal
+        closeModal('transaction-modal');
         
-        // Lọc theo phương thức
-        if (paymentFilters.method !== 'all' && payment.method !== paymentFilters.method) return false;
-        
-        // Lọc theo ngày
-        if (paymentFilters.startDate) {
-            const startDate = new Date(paymentFilters.startDate);
-            if (new Date(payment.date) < startDate) return false;
-        }
-        if (paymentFilters.endDate) {
-            const endDate = new Date(paymentFilters.endDate);
-            if (new Date(payment.date) > endDate) return false;
-        }
-        
-        // Lọc theo từ khóa
-        if (paymentFilters.searchTerm) {
-            const searchTerm = paymentFilters.searchTerm.toLowerCase();
-            return payment.id.toLowerCase().includes(searchTerm) ||
-                   payment.note.toLowerCase().includes(searchTerm) ||
-                   formatCurrency(payment.amount).includes(searchTerm);
-        }
-        
-        return true;
-    });
-
-    // Sắp xếp theo ngày mới nhất
-    filteredPayments.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    tbody.innerHTML = filteredPayments.map(payment => `
-        <tr>
-            <td>${payment.id}</td>
-            <td>${formatDate(payment.date)}</td>
-            <td>${formatCurrency(payment.amount)}</td>
-            <td>
-                <span class="status-badge ${payment.status}">
-                    ${getPaymentStatusText(payment.status)}
-                </span>
-            </td>
-            <td>${getPaymentMethodText(payment.method)}</td>
-            <td>${payment.note}</td>
-            <td>
-                <button onclick="viewPaymentDetail('${payment.id}')" class="btn view-btn">
-                    <i class="fas fa-eye"></i>
-                </button>
-                ${payment.status === PAYMENT_STATUS.PENDING ? `
-                    <button onclick="completePayment('${payment.id}')" class="btn complete-btn">
-                        <i class="fas fa-check"></i>
-                    </button>
-                    <button onclick="cancelPayment('${payment.id}')" class="btn cancel-btn">
-                        <i class="fas fa-times"></i>
-                    </button>
-                ` : ''}
-            </td>
-        </tr>
-    `).join('');
-
-    // Cập nhật tổng số kết quả
-    const resultCount = document.getElementById('payment-result-count');
-    if (resultCount) {
-        resultCount.textContent = `Tìm thấy ${filteredPayments.length} kết quả`;
+        // Hiển thị thông báo thành công
+        showNotification('Giao dịch được thực hiện thành công', 'success');
+    } catch (error) {
+        console.error('Error submitting transaction:', error);
+        showNotification('Có lỗi xảy ra khi thực hiện giao dịch', 'error');
     }
-}
-
-function viewPaymentDetail(paymentId) {
-    const payment = payments.find(p => p.id === paymentId);
-    if (!payment) {
-        showNotification('Không tìm thấy thông tin thanh toán', 'error');
-        return;
-    }
-
-    const modal = document.getElementById('payment-detail-modal');
-    if (!modal) return;
-
-    modal.innerHTML = `
-        <div class="modal-content">
-            <h2>Chi tiết thanh toán</h2>
-            <div class="payment-info">
-                <div class="info-group">
-                    <label>Mã thanh toán:</label>
-                    <span>${payment.id}</span>
-                </div>
-                <div class="info-group">
-                    <label>Mã giao dịch:</label>
-                    <span>${payment.transactionId}</span>
-                </div>
-                <div class="info-group">
-                    <label>Loại:</label>
-                    <span class="status-badge ${payment.type}">
-                        ${payment.type === 'import' ? 'Nhập kho' : 'Xuất kho'}
-                    </span>
-                </div>
-                <div class="info-group">
-                    <label>Số tiền:</label>
-                    <span>${formatCurrency(payment.amount)}</span>
-                </div>
-                <div class="info-group">
-                    <label>Ngày:</label>
-                    <span>${formatDate(payment.date)}</span>
-                </div>
-                <div class="info-group">
-                    <label>Trạng thái:</label>
-                    <span class="status-badge ${payment.status}">
-                        ${getPaymentStatusText(payment.status)}
-                    </span>
-                </div>
-                <div class="info-group">
-                    <label>Phương thức:</label>
-                    <span>${getPaymentMethodText(payment.method)}</span>
-                </div>
-                <div class="info-group">
-                    <label>Ghi chú:</label>
-                    <span>${payment.note}</span>
-                </div>
-            </div>
-            <div class="modal-actions">
-                ${payment.status === PAYMENT_STATUS.PENDING ? `
-                    <button onclick="completePayment('${payment.id}')" class="btn complete-btn">
-                        <i class="fas fa-check"></i> Hoàn thành
-                    </button>
-                    <button onclick="cancelPayment('${payment.id}')" class="btn cancel-btn">
-                        <i class="fas fa-times"></i> Hủy
-                    </button>
-                ` : ''}
-                <button onclick="closeModal('payment-detail-modal')" class="btn">
-                    <i class="fas fa-times"></i> Đóng
-                </button>
-            </div>
-        </div>
-    `;
-    
-    modal.style.display = 'block';
-}
-
-function completePayment(paymentId) {
-    const payment = payments.find(p => p.id === paymentId);
-    if (!payment) {
-        showNotification('Không tìm thấy thông tin thanh toán', 'error');
-        return;
-    }
-
-    payment.status = PAYMENT_STATUS.COMPLETED;
-    updatePaymentsTable();
-    closeModal('payment-detail-modal');
-    showNotification('Đã hoàn thành thanh toán', 'success');
-}
-
-function cancelPayment(paymentId) {
-    if (!confirm('Bạn có chắc chắn muốn hủy thanh toán này?')) return;
-
-    const payment = payments.find(p => p.id === paymentId);
-    if (!payment) {
-        showNotification('Không tìm thấy thông tin thanh toán', 'error');
-        return;
-    }
-
-    payment.status = PAYMENT_STATUS.CANCELLED;
-    updatePaymentsTable();
-    closeModal('payment-detail-modal');
-    showNotification('Đã hủy thanh toán', 'success');
-}
-
-function createPayment(transactionData) {
-    const payment = {
-        id: 'P' + Date.now(),
-        transactionId: transactionData.id,
-        amount: calculateAmount(transactionData),
-        date: new Date(),
-        type: transactionData.type,
-        status: PAYMENT_STATUS.PENDING,
-        method: null,
-        note: `Thanh toán ${transactionData.type === 'import' ? 'nhập' : 'xuất'} kho: ${transactionData.deviceName}`
-    };
-
-    const modal = document.getElementById('payment-form-modal');
-    if (!modal) return;
-
-    modal.innerHTML = `
-        <div class="modal-content">
-            <h2>Tạo thanh toán mới</h2>
-            <form id="payment-form" onsubmit="handlePaymentSubmit(event, '${payment.id}')">
-                <div class="form-group">
-                    <label>Số tiền</label>
-                    <input type="number" name="amount" value="${payment.amount}" required>
-                </div>
-                <div class="form-group">
-                    <label>Phương thức thanh toán</label>
-                    <select name="method" required>
-                        <option value="">Chọn phương thức</option>
-                        <option value="cash">Tiền mặt</option>
-                        <option value="bank_transfer">Chuyển khoản</option>
-                        <option value="credit_card">Thẻ tín dụng</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Ghi chú</label>
-                    <textarea name="note">${payment.note}</textarea>
-                </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn primary-btn">
-                        <i class="fas fa-save"></i> Lưu
-                    </button>
-                    <button type="button" onclick="closeModal('payment-form-modal')" class="btn">
-                        <i class="fas fa-times"></i> Hủy
-                    </button>
-                </div>
-            </form>
-        </div>
-    `;
-    
-    modal.style.display = 'block';
-    return payment;
-}
-
-function handlePaymentSubmit(event, paymentId) {
-    event.preventDefault();
-    const form = event.target;
-    
-    const payment = {
-        ...payments.find(p => p.id === paymentId) || {},
-        amount: parseInt(form.amount.value),
-        method: form.method.value,
-        note: form.note.value
-    };
-
-    const index = payments.findIndex(p => p.id === paymentId);
-    if (index === -1) {
-        payments.push(payment);
-    } else {
-        payments[index] = payment;
-    }
-
-    updatePaymentsTable();
-    closeModal('payment-form-modal');
-    showNotification('Đã lưu thông tin thanh toán', 'success');
-}
-
-function calculateAmount(transaction) {
-    const device = devices.find(d => d.id === transaction.deviceId);
-    if (!device) return 0;
-    return device.price * transaction.quantity;
-}
-
-function getPaymentStatusText(status) {
-    const statusMap = {
-        [PAYMENT_STATUS.PENDING]: 'Chờ thanh toán',
-        [PAYMENT_STATUS.COMPLETED]: 'Đã thanh toán',
-        [PAYMENT_STATUS.CANCELLED]: 'Đã hủy'
-    };
-    return statusMap[status] || status;
-}
-
-function getPaymentMethodText(method) {
-    const methodMap = {
-        [PAYMENT_METHODS.CASH]: 'Tiền mặt',
-        [PAYMENT_METHODS.BANK_TRANSFER]: 'Chuyển khoản',
-        [PAYMENT_METHODS.CREDIT_CARD]: 'Thẻ tín dụng'
-    };
-    return methodMap[method] || method;
-}
-
-// Export các hàm cần thiết
-window.viewPaymentDetail = viewPaymentDetail;
-window.completePayment = completePayment;
-window.cancelPayment = cancelPayment;
-window.createPayment = createPayment;
-window.handlePaymentSubmit = handlePaymentSubmit;
-
-// Cập nhật thống kê sau khi nhập/xuất kho
-function updateTransactionStats() {
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-
-    // Lọc giao dịch trong tháng hiện tại
-    const monthlyTransactions = history.filter(t => {
-        const transactionDate = new Date(t.date);
-        return transactionDate.getMonth() === currentMonth && 
-               transactionDate.getFullYear() === currentYear;
-    });
-
-    // Tính toán thống kê
-    const monthlyImport = monthlyTransactions.filter(t => t.type === 'import').length;
-    const monthlyExport = monthlyTransactions.filter(t => t.type === 'export').length;
-    
-    const totalImportValue = monthlyTransactions
-        .filter(t => t.type === 'import')
-        .reduce((sum, t) => sum + (t.quantity * t.price), 0);
-    
-    const totalExportValue = monthlyTransactions
-        .filter(t => t.type === 'export')
-        .reduce((sum, t) => sum + (t.quantity * t.price), 0);
-
-    // Cập nhật UI
-    document.getElementById('monthly-import').textContent = monthlyImport;
-    document.getElementById('monthly-export').textContent = monthlyExport;
-    document.getElementById('total-import-value').textContent = formatCurrency(totalImportValue);
-    document.getElementById('total-export-value').textContent = formatCurrency(totalExportValue);
-
-    // Cập nhật thống kê dashboard
-    updateDashboardStats();
-}
-
-// Cập nhật thống kê dashboard
-function updateDashboardStats() {
-    // Cập nhật tổng thiết bị
-    document.getElementById('total-devices').textContent = devices.length;
-
-    // Cập nhật nhập/xuất tháng này
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-
-    const monthlyTransactions = history.filter(t => {
-        const transactionDate = new Date(t.date);
-        return transactionDate.getMonth() === currentMonth && 
-               transactionDate.getFullYear() === currentYear;
-    });
-
-    document.getElementById('imported-this-month').textContent = 
-        monthlyTransactions.filter(t => t.type === 'import').length;
-    document.getElementById('exported-this-month').textContent = 
-        monthlyTransactions.filter(t => t.type === 'export').length;
-
-    // Cập nhật thiết bị sắp hết
-    const lowStockDevices = devices.filter(d => d.quantity <= d.threshold).length;
-    document.getElementById('low-stock-devices').textContent = lowStockDevices;
-
-    // Cập nhật biểu đồ
-    updateCharts();
 }
 
 // Thêm hàm generateTransactionId
@@ -1448,9 +1183,9 @@ function generateTransactionId() {
     return 'T' + Date.now() + Math.random().toString(36).substr(2, 5);
 }
 
-// Các hàm xử lý phân trang
-function updatePagination() {
-    const totalPages = Math.ceil(devices.length / itemsPerPage);
+// Cập nhật hàm updatePagination để nhận tổng số thiết bị
+function updatePagination(totalItems) {
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
     const paginationEl = document.querySelector('.pagination');
     if (!paginationEl) return;
 
@@ -1516,3 +1251,414 @@ function resetPaymentFilters() {
 // Export các hàm mới
 window.applyPaymentFilters = applyPaymentFilters;
 window.resetPaymentFilters = resetPaymentFilters;
+
+// Hàm cập nhật bảng giao dịch gần đây
+function updateRecentTransactionsTable() {
+    const tbody = document.querySelector('#recent-transactions-table tbody');
+    tbody.innerHTML = '';
+
+    // Lấy 10 giao dịch gần nhất
+    const recentTransactions = transactions
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .slice(0, 10);
+
+    recentTransactions.forEach(transaction => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${formatDate(transaction.date)}</td>
+            <td>
+                <span class="transaction-type ${transaction.type}">
+                    <i class="fas fa-${transaction.type === 'import' ? 'arrow-down' : 'arrow-up'}"></i>
+                    ${transaction.type === 'import' ? 'Nhập kho' : 'Xuất kho'}
+                </span>
+            </td>
+            <td>${transaction.deviceName}</td>
+            <td>${transaction.quantity}</td>
+            <td>${formatCurrency(transaction.price)}</td>
+            <td>${formatCurrency(transaction.totalAmount)}</td>
+            <td>${transaction.user}</td>
+            <td>
+                <span class="status-badge status-${transaction.status.toLowerCase()}">
+                    ${getStatusText(transaction.status)}
+                </span>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+// Hàm lấy text trạng thái
+function getStatusText(status) {
+    switch(status) {
+        case 'COMPLETED': return 'Hoàn thành';
+        case 'PENDING': return 'Chờ xử lý';
+        case 'CANCELLED': return 'Đã hủy';
+        default: return status;
+    }
+}
+
+// Cập nhật hàm loadInitialData để hiển thị giao dịch gần đây
+async function loadInitialData() {
+    try {
+        // Trong môi trường development, sử dụng mock data
+        devices = mockDevices;
+        alerts = mockAlerts;
+        transactions = mockTransactions;
+
+        // Cập nhật UI
+        updateDashboardStats();
+        updateDevicesTable();
+        updateAlerts();
+        updateRecentTransactionsTable();
+    } catch (error) {
+        console.error('Error loading initial data:', error);
+        showNotification('Không thể tải dữ liệu ban đầu', 'error');
+    }
+}
+
+// Hàm xuất file Excel
+function exportToExcel() {
+    try {
+        // Tạo workbook mới
+        const wb = XLSX.utils.book_new();
+        
+        // Chuẩn bị dữ liệu cho bảng
+        const data = history.map(item => ({
+            'Mã GD': item.id,
+            'Loại': item.type === 'import' ? 'Nhập kho' : 'Xuất kho',
+            'Thiết bị': item.deviceName,
+            'Số lượng': item.quantity,
+            'Đơn giá': formatCurrency(item.price),
+            'Thành tiền': formatCurrency(item.totalAmount),
+            'Ngày': formatDate(item.date),
+            'Người thực hiện': item.user,
+            'Trạng thái': getStatusText(item.status),
+            'Ghi chú': item.note
+        }));
+
+        // Tạo worksheet từ dữ liệu
+        const ws = XLSX.utils.json_to_sheet(data);
+        
+        // Thêm worksheet vào workbook
+        XLSX.utils.book_append_sheet(wb, ws, 'Lịch sử giao dịch');
+        
+        // Xuất file
+        XLSX.writeFile(wb, `Lich_su_giao_dich_${formatDate(new Date())}.xlsx`);
+        
+        showNotification('Đã xuất file Excel thành công', 'success');
+    } catch (error) {
+        console.error('Error exporting to Excel:', error);
+        showNotification('Có lỗi xảy ra khi xuất file Excel', 'error');
+    }
+}
+
+// Hàm xuất file PDF
+function exportToPDF() {
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // Thêm tiêu đề
+        doc.setFontSize(16);
+        doc.text('Lịch Sử Giao Dịch', 14, 15);
+        doc.setFontSize(10);
+        doc.text(`Ngày xuất: ${formatDate(new Date())}`, 14, 25);
+
+        // Chuẩn bị dữ liệu cho bảng
+        const data = history.map(item => [
+            item.id,
+            item.type === 'import' ? 'Nhập kho' : 'Xuất kho',
+            item.deviceName,
+            item.quantity.toString(),
+            formatCurrency(item.price),
+            formatCurrency(item.totalAmount),
+            formatDate(item.date),
+            item.user,
+            getStatusText(item.status),
+            item.note
+        ]);
+
+        // Tạo bảng
+        doc.autoTable({
+            head: [['Mã GD', 'Loại', 'Thiết bị', 'Số lượng', 'Đơn giá', 'Thành tiền', 'Ngày', 'Người thực hiện', 'Trạng thái', 'Ghi chú']],
+            body: data,
+            startY: 30,
+            theme: 'grid',
+            styles: {
+                fontSize: 8,
+                cellPadding: 2
+            },
+            headStyles: {
+                fillColor: [52, 152, 219],
+                textColor: 255,
+                fontStyle: 'bold'
+            },
+            alternateRowStyles: {
+                fillColor: [245, 245, 245]
+            }
+        });
+
+        // Xuất file
+        doc.save(`Lich_su_giao_dich_${formatDate(new Date())}.pdf`);
+        
+        showNotification('Đã xuất file PDF thành công', 'success');
+    } catch (error) {
+        console.error('Error exporting to PDF:', error);
+        showNotification('Có lỗi xảy ra khi xuất file PDF', 'error');
+    }
+}
+
+// Export các hàm xuất file
+window.exportToExcel = exportToExcel;
+window.exportToPDF = exportToPDF;
+
+// Hàm import thiết bị từ Excel
+function importDevicesFromExcel() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.xlsx, .xls';
+    input.onchange = function(e) {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+
+                // Chuyển đổi dữ liệu Excel thành định dạng thiết bị
+                const newDevices = jsonData.map(row => ({
+                    id: row['Mã'] || generateDeviceId(),
+                    name: row['Tên thiết bị'],
+                    category: row['Danh mục'],
+                    quantity: parseInt(row['Số lượng']) || 0,
+                    price: parseFloat(row['Đơn giá']) || 0,
+                    threshold: parseInt(row['Ngưỡng cảnh báo']) || 5,
+                    description: row['Mô tả'] || ''
+                }));
+
+                // Thêm các thiết bị mới vào danh sách
+                devices = [...devices, ...newDevices];
+                
+                // Cập nhật UI
+                updateDevicesTable();
+                updateDashboardStats();
+                
+                showNotification(`Đã import ${newDevices.length} thiết bị thành công`, 'success');
+            } catch (error) {
+                console.error('Error importing devices:', error);
+                showNotification('Có lỗi xảy ra khi import file Excel', 'error');
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    };
+    input.click();
+}
+
+// Hàm xuất thiết bị ra Excel
+function exportDevicesToExcel() {
+    try {
+        const wb = XLSX.utils.book_new();
+        const data = devices.map(device => ({
+            'Mã': device.id,
+            'Tên thiết bị': device.name,
+            'Danh mục': device.category,
+            'Số lượng': device.quantity,
+            'Đơn giá': device.price,
+            'Ngưỡng cảnh báo': device.threshold,
+            'Mô tả': device.description || '',
+            'Trạng thái': getDeviceStatusText(getDeviceStatus(device))
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        XLSX.utils.book_append_sheet(wb, ws, 'Danh sách thiết bị');
+        XLSX.writeFile(wb, `Danh_sach_thiet_bi_${formatDate(new Date())}.xlsx`);
+        
+        showNotification('Đã xuất file Excel thành công', 'success');
+    } catch (error) {
+        console.error('Error exporting devices:', error);
+        showNotification('Có lỗi xảy ra khi xuất file Excel', 'error');
+    }
+}
+
+// Hàm xuất thiết bị ra PDF
+function exportDevicesToPDF() {
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // Thêm tiêu đề
+        doc.setFontSize(16);
+        doc.text('Danh Sách Thiết Bị', 14, 15);
+        doc.setFontSize(10);
+        doc.text(`Ngày xuất: ${formatDate(new Date())}`, 14, 25);
+
+        // Chuẩn bị dữ liệu cho bảng
+        const data = devices.map(device => [
+            device.id,
+            device.name,
+            device.category,
+            device.quantity.toString(),
+            formatCurrency(device.price),
+            device.threshold.toString(),
+            getDeviceStatusText(getDeviceStatus(device))
+        ]);
+
+        // Tạo bảng
+        doc.autoTable({
+            head: [['Mã', 'Tên thiết bị', 'Danh mục', 'Số lượng', 'Đơn giá', 'Ngưỡng cảnh báo', 'Trạng thái']],
+            body: data,
+            startY: 30,
+            theme: 'grid',
+            styles: {
+                fontSize: 8,
+                cellPadding: 2
+            },
+            headStyles: {
+                fillColor: [52, 152, 219],
+                textColor: 255,
+                fontStyle: 'bold'
+            },
+            alternateRowStyles: {
+                fillColor: [245, 245, 245]
+            }
+        });
+
+        doc.save(`Danh_sach_thiet_bi_${formatDate(new Date())}.pdf`);
+        showNotification('Đã xuất file PDF thành công', 'success');
+    } catch (error) {
+        console.error('Error exporting devices to PDF:', error);
+        showNotification('Có lỗi xảy ra khi xuất file PDF', 'error');
+    }
+}
+
+// Hàm import thanh toán từ Excel
+function importPaymentsFromExcel() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.xlsx, .xls';
+    input.onchange = function(e) {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+
+                // Chuyển đổi dữ liệu Excel thành định dạng thanh toán
+                const newPayments = jsonData.map(row => ({
+                    id: row['Mã thanh toán'] || generatePaymentId(),
+                    transactionId: row['Mã giao dịch'],
+                    amount: parseFloat(row['Số tiền']) || 0,
+                    date: new Date(row['Ngày']),
+                    type: row['Loại'],
+                    status: row['Trạng thái'],
+                    method: row['Phương thức'],
+                    note: row['Ghi chú'] || ''
+                }));
+
+                // Thêm các thanh toán mới vào danh sách
+                payments = [...payments, ...newPayments];
+                
+                // Cập nhật UI
+                updatePaymentsTable();
+                updatePaymentStats();
+                
+                showNotification(`Đã import ${newPayments.length} thanh toán thành công`, 'success');
+            } catch (error) {
+                console.error('Error importing payments:', error);
+                showNotification('Có lỗi xảy ra khi import file Excel', 'error');
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    };
+    input.click();
+}
+
+// Hàm xuất thanh toán ra Excel
+function exportPaymentsToExcel() {
+    try {
+        const wb = XLSX.utils.book_new();
+        const data = payments.map(payment => ({
+            'Mã thanh toán': payment.id,
+            'Mã giao dịch': payment.transactionId,
+            'Số tiền': payment.amount,
+            'Ngày': formatDate(payment.date),
+            'Loại': payment.type === 'import' ? 'Nhập kho' : 'Xuất kho',
+            'Trạng thái': getPaymentStatusText(payment.status),
+            'Phương thức': getPaymentMethodText(payment.method),
+            'Ghi chú': payment.note || ''
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        XLSX.utils.book_append_sheet(wb, ws, 'Danh sách thanh toán');
+        XLSX.writeFile(wb, `Danh_sach_thanh_toan_${formatDate(new Date())}.xlsx`);
+        
+        showNotification('Đã xuất file Excel thành công', 'success');
+    } catch (error) {
+        console.error('Error exporting payments:', error);
+        showNotification('Có lỗi xảy ra khi xuất file Excel', 'error');
+    }
+}
+
+// Hàm xuất thanh toán ra PDF
+function exportPaymentsToPDF() {
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // Thêm tiêu đề
+        doc.setFontSize(16);
+        doc.text('Danh Sách Thanh Toán', 14, 15);
+        doc.setFontSize(10);
+        doc.text(`Ngày xuất: ${formatDate(new Date())}`, 14, 25);
+
+        // Chuẩn bị dữ liệu cho bảng
+        const data = payments.map(payment => [
+            payment.id,
+            payment.transactionId,
+            formatCurrency(payment.amount),
+            formatDate(payment.date),
+            payment.type === 'import' ? 'Nhập kho' : 'Xuất kho',
+            getPaymentStatusText(payment.status),
+            getPaymentMethodText(payment.method)
+        ]);
+
+        // Tạo bảng
+        doc.autoTable({
+            head: [['Mã thanh toán', 'Mã giao dịch', 'Số tiền', 'Ngày', 'Loại', 'Trạng thái', 'Phương thức']],
+            body: data,
+            startY: 30,
+            theme: 'grid',
+            styles: {
+                fontSize: 8,
+                cellPadding: 2
+            },
+            headStyles: {
+                fillColor: [52, 152, 219],
+                textColor: 255,
+                fontStyle: 'bold'
+            },
+            alternateRowStyles: {
+                fillColor: [245, 245, 245]
+            }
+        });
+
+        doc.save(`Danh_sach_thanh_toan_${formatDate(new Date())}.pdf`);
+        showNotification('Đã xuất file PDF thành công', 'success');
+    } catch (error) {
+        console.error('Error exporting payments to PDF:', error);
+        showNotification('Có lỗi xảy ra khi xuất file PDF', 'error');
+    }
+}
+
+// Export các hàm mới
+window.importDevicesFromExcel = importDevicesFromExcel;
+window.exportDevicesToExcel = exportDevicesToExcel;
+window.exportDevicesToPDF = exportDevicesToPDF;
+window.importPaymentsFromExcel = importPaymentsFromExcel;
+window.exportPaymentsToExcel = exportPaymentsToExcel;
+window.exportPaymentsToPDF = exportPaymentsToPDF;
