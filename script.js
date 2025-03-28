@@ -1105,16 +1105,24 @@ function addTransaction(type) {
             <form id="transaction-form" onsubmit="handleTransactionSubmit(event, '${type}')">
                 <div class="form-group">
                     <label>Thiết bị</label>
-                    <select name="deviceId" required>
+                    <select name="deviceId" id="device-select" required onchange="updateTransactionPrice(this.value, '${type}')">
                         <option value="">Chọn thiết bị</option>
                         ${devices.map(d => `
-                            <option value="${d.id}">${d.name}</option>
+                            <option value="${d.id}" data-price="${d.price}">${d.name} (Còn: ${d.quantity})</option>
                         `).join('')}
                     </select>
                 </div>
                 <div class="form-group">
                     <label>Số lượng</label>
-                    <input type="number" name="quantity" required min="1">
+                    <input type="number" name="quantity" id="quantity-input" required min="1" onchange="updateTransactionPrice(document.getElementById('device-select').value, '${type}')">
+                </div>
+                <div class="form-group">
+                    <label>Đơn giá</label>
+                    <input type="number" name="price" id="price-input" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Thành tiền</label>
+                    <input type="number" name="totalAmount" id="total-amount" readonly>
                 </div>
                 <div class="form-group">
                     <label>Ghi chú</label>
@@ -1135,20 +1143,61 @@ function addTransaction(type) {
     modal.style.display = 'block';
 }
 
+// Thêm hàm cập nhật giá và thành tiền
+function updateTransactionPrice(deviceId, type) {
+    const device = devices.find(d => d.id === deviceId);
+    if (!device) return;
+
+    const quantityInput = document.getElementById('quantity-input');
+    const priceInput = document.getElementById('price-input');
+    const totalAmountInput = document.getElementById('total-amount');
+
+    // Cập nhật đơn giá
+    priceInput.value = device.price;
+
+    // Tính thành tiền
+    const quantity = parseInt(quantityInput.value) || 0;
+    const totalAmount = quantity * device.price;
+    totalAmountInput.value = totalAmount;
+
+    // Kiểm tra số lượng xuất kho
+    if (type === 'export' && quantity > device.quantity) {
+        showNotification('Số lượng xuất không được vượt quá số lượng trong kho', 'error');
+        quantityInput.value = device.quantity;
+        totalAmountInput.value = device.quantity * device.price;
+    }
+}
+
+// Cập nhật hàm handleTransactionSubmit
 async function handleTransactionSubmit(event, type) {
     event.preventDefault();
     const form = event.target;
     const formData = new FormData(form);
     
     try {
+        const deviceId = formData.get('deviceId');
+        const device = devices.find(d => d.id === deviceId);
+        if (!device) {
+            throw new Error('Không tìm thấy thiết bị');
+        }
+
+        const quantity = parseInt(formData.get('quantity'));
+        const price = parseFloat(formData.get('price'));
+        const totalAmount = parseFloat(formData.get('totalAmount'));
+
+        // Kiểm tra số lượng xuất kho
+        if (type === 'export' && quantity > device.quantity) {
+            throw new Error('Số lượng xuất không được vượt quá số lượng trong kho');
+        }
+
         const transactionData = {
             id: generateTransactionId(),
             type,
-            deviceId: formData.get('deviceId'),
-            deviceName: getDeviceName(formData.get('deviceId')),
-            quantity: parseInt(formData.get('quantity')),
-            price: parseFloat(formData.get('price')),
-            totalAmount: parseFloat(formData.get('totalAmount')),
+            deviceId,
+            deviceName: device.name,
+            quantity,
+            price,
+            totalAmount,
             date: new Date().toISOString(),
             user: 'Admin', // Thay thế bằng user thực tế
             status: 'COMPLETED',
@@ -1157,9 +1206,16 @@ async function handleTransactionSubmit(event, type) {
 
         // Thêm giao dịch mới vào mảng transactions
         transactions.unshift(transactionData);
+        
+        // Thêm giao dịch vào lịch sử
+        history.unshift(transactionData);
 
         // Cập nhật số lượng thiết bị
-        updateDeviceQuantity(transactionData);
+        if (type === 'import') {
+            device.quantity += quantity;
+        } else {
+            device.quantity -= quantity;
+        }
 
         // Cập nhật UI
         updateRecentTransactionsTable();
@@ -1174,7 +1230,7 @@ async function handleTransactionSubmit(event, type) {
         showNotification('Giao dịch được thực hiện thành công', 'success');
     } catch (error) {
         console.error('Error submitting transaction:', error);
-        showNotification('Có lỗi xảy ra khi thực hiện giao dịch', 'error');
+        showNotification(error.message || 'Có lỗi xảy ra khi thực hiện giao dịch', 'error');
     }
 }
 
@@ -1252,19 +1308,22 @@ function resetPaymentFilters() {
 window.applyPaymentFilters = applyPaymentFilters;
 window.resetPaymentFilters = resetPaymentFilters;
 
-// Hàm cập nhật bảng giao dịch gần đây
+// Cập nhật hàm updateRecentTransactionsTable
 function updateRecentTransactionsTable() {
     const tbody = document.querySelector('#recent-transactions-table tbody');
-    tbody.innerHTML = '';
+    if (!tbody) return;
 
-    // Lấy 10 giao dịch gần nhất
+    // Lấy ngày 3 ngày trước
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+    // Lọc giao dịch trong 3 ngày gần nhất
     const recentTransactions = transactions
-        .sort((a, b) => new Date(b.date) - new Date(a.date))
-        .slice(0, 10);
+        .filter(t => new Date(t.date) >= threeDaysAgo)
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    recentTransactions.forEach(transaction => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
+    tbody.innerHTML = recentTransactions.map(transaction => `
+        <tr>
             <td>${formatDate(transaction.date)}</td>
             <td>
                 <span class="transaction-type ${transaction.type}">
@@ -1282,135 +1341,321 @@ function updateRecentTransactionsTable() {
                     ${getStatusText(transaction.status)}
                 </span>
             </td>
-        `;
-        tbody.appendChild(row);
+        </tr>
+    `).join('');
+}
+
+// Thêm hàm cập nhật thống kê giao dịch
+function updateTransactionStats() {
+    const today = new Date();
+    const thisMonth = transactions.filter(t => {
+        const transactionDate = new Date(t.date);
+        return transactionDate.getMonth() === today.getMonth() &&
+               transactionDate.getFullYear() === today.getFullYear();
     });
+
+    // Tính tổng số giao dịch nhập/xuất trong tháng
+    const importCount = thisMonth.filter(t => t.type === 'import').length;
+    const exportCount = thisMonth.filter(t => t.type === 'export').length;
+
+    // Tính tổng giá trị nhập/xuất trong tháng
+    const importValue = thisMonth
+        .filter(t => t.type === 'import')
+        .reduce((sum, t) => sum + t.totalAmount, 0);
+    const exportValue = thisMonth
+        .filter(t => t.type === 'export')
+        .reduce((sum, t) => sum + t.totalAmount, 0);
+
+    // Cập nhật các phần tử trên giao diện
+    updateElement('import-count', importCount);
+    updateElement('export-count', exportCount);
+    updateElement('import-value', formatCurrency(importValue));
+    updateElement('export-value', formatCurrency(exportValue));
+    updateElement('total-transactions', transactions.length);
 }
 
-// Hàm lấy text trạng thái
-function getStatusText(status) {
-    switch(status) {
-        case 'COMPLETED': return 'Hoàn thành';
-        case 'PENDING': return 'Chờ xử lý';
-        case 'CANCELLED': return 'Đã hủy';
-        default: return status;
+// Thêm hàm loadPaymentsSection
+function loadPaymentsSection() {
+    updatePaymentStats();
+    updatePaymentsTable();
+}
+
+// Thêm hàm updatePaymentStats
+function updatePaymentStats() {
+    const today = new Date();
+    const thisMonth = payments.filter(p => {
+        const paymentDate = new Date(p.date);
+        return paymentDate.getMonth() === today.getMonth() &&
+               paymentDate.getFullYear() === today.getFullYear();
+    });
+
+    // Tính tổng số thanh toán trong tháng
+    const totalPayments = thisMonth.length;
+    const completedPayments = thisMonth.filter(p => p.status === 'completed').length;
+    const pendingPayments = thisMonth.filter(p => p.status === 'pending').length;
+
+    // Tính tổng giá trị thanh toán trong tháng
+    const totalAmount = thisMonth.reduce((sum, p) => sum + p.amount, 0);
+    const completedAmount = thisMonth
+        .filter(p => p.status === 'completed')
+        .reduce((sum, p) => sum + p.amount, 0);
+
+    // Cập nhật các phần tử trên giao diện
+    updateElement('total-payments', totalPayments);
+    updateElement('completed-payments', completedPayments);
+    updateElement('pending-payments', pendingPayments);
+    updateElement('total-amount', formatCurrency(totalAmount));
+    updateElement('completed-amount', formatCurrency(completedAmount));
+}
+
+// Thêm hàm updatePaymentsTable
+function updatePaymentsTable() {
+    const tbody = document.querySelector('#payments-table tbody');
+    if (!tbody) return;
+
+    // Lọc thanh toán theo điều kiện
+    let filteredPayments = payments.filter(payment => {
+        // Lọc theo khoảng thời gian
+        if (paymentFilters.startDate && new Date(payment.date) < new Date(paymentFilters.startDate)) return false;
+        if (paymentFilters.endDate && new Date(payment.date) > new Date(paymentFilters.endDate)) return false;
+
+        // Lọc theo trạng thái
+        if (paymentFilters.status !== 'all' && payment.status !== paymentFilters.status) return false;
+
+        // Lọc theo phương thức
+        if (paymentFilters.method !== 'all' && payment.method !== paymentFilters.method) return false;
+
+        // Lọc theo từ khóa tìm kiếm
+        if (paymentFilters.searchTerm) {
+            const searchTerm = paymentFilters.searchTerm.toLowerCase();
+            return payment.id.toLowerCase().includes(searchTerm) ||
+                   payment.transactionId.toLowerCase().includes(searchTerm) ||
+                   payment.note.toLowerCase().includes(searchTerm);
+        }
+
+        return true;
+    });
+
+    // Sắp xếp theo ngày mới nhất
+    filteredPayments.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    // Phân trang
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    const pagePayments = filteredPayments.slice(start, end);
+
+    // Cập nhật bảng
+    tbody.innerHTML = pagePayments.map(payment => `
+        <tr>
+            <td>${payment.id}</td>
+            <td>${payment.transactionId}</td>
+            <td>${formatCurrency(payment.amount)}</td>
+            <td>${formatDate(payment.date)}</td>
+            <td>
+                <span class="status-badge ${payment.type === 'import' ? 'import' : 'export'}">
+                    ${payment.type === 'import' ? 'Nhập kho' : 'Xuất kho'}
+                </span>
+            </td>
+            <td>
+                <span class="status-badge status-${payment.status}">
+                    ${getStatusText(payment.status)}
+                </span>
+            </td>
+            <td>
+                <span class="payment-method ${payment.method}">
+                    ${getPaymentMethodText(payment.method)}
+                </span>
+            </td>
+            <td>${payment.note || ''}</td>
+            <td>
+                <button onclick="viewPaymentDetail('${payment.id}')" class="btn view-btn">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button onclick="editPayment('${payment.id}')" class="btn edit-btn">
+                    <i class="fas fa-edit"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+
+    // Cập nhật phân trang
+    updatePagination(filteredPayments.length);
+}
+
+// Thêm hàm viewPaymentDetail
+function viewPaymentDetail(paymentId) {
+    const payment = payments.find(p => p.id === paymentId);
+    if (!payment) {
+        showNotification('Không tìm thấy thông tin thanh toán', 'error');
+        return;
     }
+
+    const modal = document.getElementById('payment-detail-modal');
+    if (!modal) return;
+
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h2>Chi tiết thanh toán</h2>
+            <div class="payment-info">
+                <div class="info-group">
+                    <label>Mã thanh toán:</label>
+                    <span>${payment.id}</span>
+                </div>
+                <div class="info-group">
+                    <label>Mã giao dịch:</label>
+                    <span>${payment.transactionId}</span>
+                </div>
+                <div class="info-group">
+                    <label>Số tiền:</label>
+                    <span>${formatCurrency(payment.amount)}</span>
+                </div>
+                <div class="info-group">
+                    <label>Ngày:</label>
+                    <span>${formatDate(payment.date)}</span>
+                </div>
+                <div class="info-group">
+                    <label>Loại:</label>
+                    <span class="status-badge ${payment.type === 'import' ? 'import' : 'export'}">
+                        ${payment.type === 'import' ? 'Nhập kho' : 'Xuất kho'}
+                    </span>
+                </div>
+                <div class="info-group">
+                    <label>Trạng thái:</label>
+                    <span class="status-badge status-${payment.status}">
+                        ${getStatusText(payment.status)}
+                    </span>
+                </div>
+                <div class="info-group">
+                    <label>Phương thức:</label>
+                    <span class="payment-method ${payment.method}">
+                        ${getPaymentMethodText(payment.method)}
+                    </span>
+                </div>
+                <div class="info-group">
+                    <label>Ghi chú:</label>
+                    <span>${payment.note || 'Không có'}</span>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button onclick="editPayment('${payment.id}')" class="btn edit-btn">
+                    <i class="fas fa-edit"></i> Chỉnh sửa
+                </button>
+                <button onclick="closeModal('payment-detail-modal')" class="btn">
+                    <i class="fas fa-times"></i> Đóng
+                </button>
+            </div>
+        </div>
+    `;
+    
+    modal.style.display = 'block';
 }
 
-// Cập nhật hàm loadInitialData để hiển thị giao dịch gần đây
-async function loadInitialData() {
+// Thêm hàm editPayment
+function editPayment(paymentId) {
+    const payment = payments.find(p => p.id === paymentId);
+    if (!payment) {
+        showNotification('Không tìm thấy thông tin thanh toán', 'error');
+        return;
+    }
+
+    const modal = document.getElementById('payment-modal');
+    if (!modal) return;
+
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h2>Chỉnh sửa thanh toán</h2>
+            <form id="payment-form" onsubmit="handlePaymentSubmit(event, '${paymentId}')">
+                <div class="form-group">
+                    <label>Mã giao dịch</label>
+                    <input type="text" name="transactionId" value="${payment.transactionId}" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Số tiền</label>
+                    <input type="number" name="amount" value="${payment.amount}" required>
+                </div>
+                <div class="form-group">
+                    <label>Ngày</label>
+                    <input type="datetime-local" name="date" value="${payment.date.slice(0, 16)}" required>
+                </div>
+                <div class="form-group">
+                    <label>Loại</label>
+                    <select name="type" required>
+                        <option value="import" ${payment.type === 'import' ? 'selected' : ''}>Nhập kho</option>
+                        <option value="export" ${payment.type === 'export' ? 'selected' : ''}>Xuất kho</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Trạng thái</label>
+                    <select name="status" required>
+                        <option value="pending" ${payment.status === 'pending' ? 'selected' : ''}>Chờ xử lý</option>
+                        <option value="completed" ${payment.status === 'completed' ? 'selected' : ''}>Hoàn thành</option>
+                        <option value="cancelled" ${payment.status === 'cancelled' ? 'selected' : ''}>Đã hủy</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Phương thức</label>
+                    <select name="method" required>
+                        <option value="cash" ${payment.method === 'cash' ? 'selected' : ''}>Tiền mặt</option>
+                        <option value="bank_transfer" ${payment.method === 'bank_transfer' ? 'selected' : ''}>Chuyển khoản</option>
+                        <option value="credit_card" ${payment.method === 'credit_card' ? 'selected' : ''}>Thẻ tín dụng</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Ghi chú</label>
+                    <textarea name="note">${payment.note || ''}</textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn primary-btn">
+                        <i class="fas fa-save"></i> Lưu
+                    </button>
+                    <button type="button" onclick="closeModal('payment-modal')" class="btn">
+                        <i class="fas fa-times"></i> Hủy
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+    
+    modal.style.display = 'block';
+}
+
+// Thêm hàm handlePaymentSubmit
+function handlePaymentSubmit(event, paymentId) {
+    event.preventDefault();
+    const form = event.target;
+    const formData = new FormData(form);
+    
     try {
-        // Trong môi trường development, sử dụng mock data
-        devices = mockDevices;
-        alerts = mockAlerts;
-        transactions = mockTransactions;
+        const paymentIndex = payments.findIndex(p => p.id === paymentId);
+        if (paymentIndex === -1) {
+            throw new Error('Không tìm thấy thanh toán');
+        }
 
-        // Cập nhật UI
-        updateDashboardStats();
-        updateDevicesTable();
-        updateAlerts();
-        updateRecentTransactionsTable();
+        const updatedPayment = {
+            ...payments[paymentIndex],
+            amount: parseFloat(formData.get('amount')),
+            date: formData.get('date'),
+            type: formData.get('type'),
+            status: formData.get('status'),
+            method: formData.get('method'),
+            note: formData.get('note')
+        };
+
+        payments[paymentIndex] = updatedPayment;
+        updatePaymentsTable();
+        updatePaymentStats();
+        closeModal('payment-modal');
+        showNotification('Cập nhật thanh toán thành công', 'success');
     } catch (error) {
-        console.error('Error loading initial data:', error);
-        showNotification('Không thể tải dữ liệu ban đầu', 'error');
+        console.error('Error updating payment:', error);
+        showNotification(error.message || 'Có lỗi xảy ra khi cập nhật thanh toán', 'error');
     }
 }
 
-// Hàm xuất file Excel
-function exportToExcel() {
-    try {
-        // Tạo workbook mới
-        const wb = XLSX.utils.book_new();
-        
-        // Chuẩn bị dữ liệu cho bảng
-        const data = history.map(item => ({
-            'Mã GD': item.id,
-            'Loại': item.type === 'import' ? 'Nhập kho' : 'Xuất kho',
-            'Thiết bị': item.deviceName,
-            'Số lượng': item.quantity,
-            'Đơn giá': formatCurrency(item.price),
-            'Thành tiền': formatCurrency(item.totalAmount),
-            'Ngày': formatDate(item.date),
-            'Người thực hiện': item.user,
-            'Trạng thái': getStatusText(item.status),
-            'Ghi chú': item.note
-        }));
-
-        // Tạo worksheet từ dữ liệu
-        const ws = XLSX.utils.json_to_sheet(data);
-        
-        // Thêm worksheet vào workbook
-        XLSX.utils.book_append_sheet(wb, ws, 'Lịch sử giao dịch');
-        
-        // Xuất file
-        XLSX.writeFile(wb, `Lich_su_giao_dich_${formatDate(new Date())}.xlsx`);
-        
-        showNotification('Đã xuất file Excel thành công', 'success');
-    } catch (error) {
-        console.error('Error exporting to Excel:', error);
-        showNotification('Có lỗi xảy ra khi xuất file Excel', 'error');
-    }
-}
-
-// Hàm xuất file PDF
-function exportToPDF() {
-    try {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-
-        // Thêm tiêu đề
-        doc.setFontSize(16);
-        doc.text('Lịch Sử Giao Dịch', 14, 15);
-        doc.setFontSize(10);
-        doc.text(`Ngày xuất: ${formatDate(new Date())}`, 14, 25);
-
-        // Chuẩn bị dữ liệu cho bảng
-        const data = history.map(item => [
-            item.id,
-            item.type === 'import' ? 'Nhập kho' : 'Xuất kho',
-            item.deviceName,
-            item.quantity.toString(),
-            formatCurrency(item.price),
-            formatCurrency(item.totalAmount),
-            formatDate(item.date),
-            item.user,
-            getStatusText(item.status),
-            item.note
-        ]);
-
-        // Tạo bảng
-        doc.autoTable({
-            head: [['Mã GD', 'Loại', 'Thiết bị', 'Số lượng', 'Đơn giá', 'Thành tiền', 'Ngày', 'Người thực hiện', 'Trạng thái', 'Ghi chú']],
-            body: data,
-            startY: 30,
-            theme: 'grid',
-            styles: {
-                fontSize: 8,
-                cellPadding: 2
-            },
-            headStyles: {
-                fillColor: [52, 152, 219],
-                textColor: 255,
-                fontStyle: 'bold'
-            },
-            alternateRowStyles: {
-                fillColor: [245, 245, 245]
-            }
-        });
-
-        // Xuất file
-        doc.save(`Lich_su_giao_dich_${formatDate(new Date())}.pdf`);
-        
-        showNotification('Đã xuất file PDF thành công', 'success');
-    } catch (error) {
-        console.error('Error exporting to PDF:', error);
-        showNotification('Có lỗi xảy ra khi xuất file PDF', 'error');
-    }
-}
-
-// Export các hàm xuất file
-window.exportToExcel = exportToExcel;
-window.exportToPDF = exportToPDF;
+// Export các hàm mới
+window.viewPaymentDetail = viewPaymentDetail;
+window.editPayment = editPayment;
+window.handlePaymentSubmit = handlePaymentSubmit;
 
 // Hàm import thiết bị từ Excel
 function importDevicesFromExcel() {
