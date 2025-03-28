@@ -360,9 +360,27 @@ function updateImportExportRatioChart() {
     const ctx = document.getElementById('importExportRatioChart')?.getContext('2d');
     if (!ctx) return;
 
+    const today = new Date();
     const months = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'];
-    const importData = months.map(() => Math.floor(Math.random() * 50));
-    const exportData = months.map(() => Math.floor(Math.random() * 50));
+    
+    // Tính toán số lượng nhập/xuất theo tháng
+    const importData = months.map((_, index) => {
+        return transactions.filter(t => {
+            const transactionDate = new Date(t.date);
+            return transactionDate.getMonth() === index &&
+                   transactionDate.getFullYear() === today.getFullYear() &&
+                   t.type === 'import';
+        }).length;
+    });
+
+    const exportData = months.map((_, index) => {
+        return transactions.filter(t => {
+            const transactionDate = new Date(t.date);
+            return transactionDate.getMonth() === index &&
+                   transactionDate.getFullYear() === today.getFullYear() &&
+                   t.type === 'export';
+        }).length;
+    });
 
     // Kiểm tra và destroy chart cũ nếu tồn tại
     const existingChart = Chart.getChart(ctx.canvas);
@@ -397,7 +415,10 @@ function updateImportExportRatioChart() {
             },
             scales: {
                 y: {
-                    beginAtZero: true
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
                 }
             }
         }
@@ -1372,6 +1393,9 @@ function updateTransactionStats() {
     updateElement('import-value', formatCurrency(importValue));
     updateElement('export-value', formatCurrency(exportValue));
     updateElement('total-transactions', transactions.length);
+
+    // Cập nhật biểu đồ tỷ lệ nhập/xuất
+    updateImportExportRatioChart();
 }
 
 // Thêm hàm loadPaymentsSection
@@ -1900,6 +1924,22 @@ function exportPaymentsToPDF() {
     }
 }
 
+// Hàm tạo ID thiết bị
+function generateDeviceId() {
+    const prefix = 'D';
+    const timestamp = Date.now().toString().slice(-6);
+    const random = Math.random().toString(36).substr(2, 3).toUpperCase();
+    return `${prefix}${timestamp}${random}`;
+}
+
+// Hàm tạo ID thanh toán
+function generatePaymentId() {
+    const prefix = 'P';
+    const timestamp = Date.now().toString().slice(-6);
+    const random = Math.random().toString(36).substr(2, 3).toUpperCase();
+    return `${prefix}${timestamp}${random}`;
+}
+
 // Export các hàm mới
 window.importDevicesFromExcel = importDevicesFromExcel;
 window.exportDevicesToExcel = exportDevicesToExcel;
@@ -1907,3 +1947,5 @@ window.exportDevicesToPDF = exportDevicesToPDF;
 window.importPaymentsFromExcel = importPaymentsFromExcel;
 window.exportPaymentsToExcel = exportPaymentsToExcel;
 window.exportPaymentsToPDF = exportPaymentsToPDF;
+window.generateDeviceId = generateDeviceId;
+window.generatePaymentId = generatePaymentId;
