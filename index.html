@@ -364,16 +364,16 @@
                     <div class="alerts-list">
                         <div class="alert-filters">
                             <div class="search-box">
-                                <input type="text" id="alert-search" placeholder="Tìm kiếm cảnh báo...">
+                                <input type="text" id="alert-search-input" placeholder="Tìm kiếm cảnh báo...">
                             </div>
                             <div class="filter-group">
-                                <select id="alert-type-filter">
+                                <select id="alert-list-type-filter">
                                     <option value="all">Tất cả loại</option>
                                     <option value="low-stock">Sắp hết hàng</option>
                                     <option value="inventory">Tồn kho</option>
                                     <option value="system">Hệ thống</option>
                                 </select>
-                                <select id="alert-severity-filter">
+                                <select id="alert-list-severity-filter">
                                     <option value="all">Tất cả mức độ</option>
                                     <option value="high">Cao</option>
                                     <option value="medium">Trung bình</option>
@@ -599,7 +599,7 @@
             <div class="alert-filters">
                 <div class="filter-group">
                     <label>Loại cảnh báo:</label>
-                    <select id="alert-type-filter">
+                    <select id="alert-settings-type-filter">
                         <option value="all">Tất cả</option>
                         <option value="low-stock">Hết hàng</option>
                         <option value="inventory">Tồn kho</option>
@@ -609,7 +609,7 @@
                 </div>
                 <div class="filter-group">
                     <label>Mức độ:</label>
-                    <select id="alert-severity-filter">
+                    <select id="alert-settings-severity-filter">
                         <option value="all">Tất cả</option>
                         <option value="high">Cao</option>
                         <option value="medium">Trung bình</option>
@@ -631,36 +631,29 @@
     <div id="transaction-modal" class="modal">
         <div class="modal-content">
             <h2><i class="fas fa-exchange-alt"></i> <span id="transaction-modal-title">Nhập kho</span></h2>
-            <form id="transaction-form" onsubmit="handleTransactionSubmit(event)">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Thiết bị</label>
-                        <select name="deviceId" required>
-                            <option value="">Chọn thiết bị</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Số lượng</label>
-                        <input type="number" name="quantity" required min="1">
-                    </div>
+            <form id="new-transaction-form" onsubmit="handleTransactionSubmit(event)">
+                <div class="form-group">
+                    <label>Thiết bị</label>
+                    <select name="deviceId" id="transaction-device-select" required>
+                        <option value="">Chọn thiết bị</option>
+                    </select>
                 </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Đơn giá</label>
-                        <input type="number" name="price" required min="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Thành tiền</label>
-                        <input type="text" id="total-amount" readonly>
-                    </div>
+                <div class="form-group">
+                    <label>Số lượng</label>
+                    <input type="number" name="quantity" id="transaction-quantity" required min="1">
                 </div>
-
+                <div class="form-group">
+                    <label>Đơn giá</label>
+                    <input type="number" name="price" id="transaction-price" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Thành tiền</label>
+                    <input type="text" id="transaction-total-amount" readonly>
+                </div>
                 <div class="form-group">
                     <label>Ghi chú</label>
-                    <textarea name="note" rows="3"></textarea>
+                    <textarea name="note"></textarea>
                 </div>
-
                 <div class="form-actions">
                     <button type="submit" class="btn primary-btn">
                         <i class="fas fa-save"></i> Lưu
@@ -674,7 +667,45 @@
     </div>
 
     <div id="paymentModal" class="modal">
-        <!-- Modal content will be dynamically inserted here by JavaScript -->
+        <div class="modal-content">
+            <h2 id="payment-modal-title">Tạo Phiếu Thu Mới</h2>
+            <form id="new-payment-form">
+                <div class="form-group">
+                    <label>Số tiền</label>
+                    <input type="number" id="new-payment-amount" required min="0">
+                </div>
+                <div class="form-group">
+                    <label>Phương thức thanh toán</label>
+                    <select id="new-payment-method" required>
+                        <option value="">Chọn phương thức</option>
+                        <option value="cash">Tiền mặt</option>
+                        <option value="bank_transfer">Chuyển khoản</option>
+                        <option value="credit_card">Thẻ tín dụng</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Trạng thái</label>
+                    <select id="new-payment-status" required>
+                        <option value="">Chọn trạng thái</option>
+                        <option value="pending">Chờ xử lý</option>
+                        <option value="completed">Hoàn thành</option>
+                        <option value="cancelled">Đã hủy</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Ghi chú</label>
+                    <textarea id="new-payment-description"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="new-payment-submit" class="btn primary-btn" onclick="handleCreatePayment()">
+                        <i class="fas fa-save"></i> Tạo
+                    </button>
+                    <button type="button" class="btn" onclick="closeModal('paymentModal')">
+                        <i class="fas fa-times"></i> Hủy
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <button class="theme-toggle" onclick="toggleTheme()">

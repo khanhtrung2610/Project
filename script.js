@@ -669,6 +669,11 @@ function updateAlerts() {
     const alertsList = document.getElementById('alerts-list');
     if (!alertsList) return;
 
+    // Update alert filters
+    const searchInput = document.getElementById('alert-search-input');
+    const typeFilter = document.getElementById('alert-list-type-filter');
+    const severityFilter = document.getElementById('alert-list-severity-filter');
+
     if (alerts.length === 0) {
         alertsList.innerHTML = `
             <div class="empty-state">
@@ -744,16 +749,73 @@ window.markAllAlertsAsRead = markAllAlertsAsRead;
 function checkAndCreateAlerts() {
     // Kiểm tra tồn kho thấp
     devices.forEach(device => {
+        // Cảnh báo tồn kho thấp
         if (device.quantity <= alertSettings.lowStockThreshold) {
             createAlert({
                 type: ALERT_TYPES.LOW_STOCK,
                 severity: ALERT_SEVERITY.HIGH,
                 title: `${device.name} sắp hết hàng`,
                 message: `Số lượng hiện tại: ${device.quantity}, dưới ngưỡng cảnh báo (${alertSettings.lowStockThreshold})`,
-                deviceId: device.id
+                deviceId: device.id,
+                deviceName: device.name
             });
         }
+
+        // Cảnh báo tồn kho cao
+        if (device.quantity > device.threshold * 3) {
+            createAlert({
+                type: ALERT_TYPES.INVENTORY_MISMATCH,
+                severity: ALERT_SEVERITY.MEDIUM,
+                title: `${device.name} tồn kho cao`,
+                message: `Số lượng hiện tại: ${device.quantity}, vượt quá 3 lần ngưỡng cảnh báo (${device.threshold})`,
+                deviceId: device.id,
+                deviceName: device.name
+            });
+        }
+
+        // Cảnh báo thay đổi lớn trong 24h
+        const recentTransactions = transactions.filter(t => {
+            const transactionDate = new Date(t.date);
+            const now = new Date();
+            const hoursDiff = (now - transactionDate) / (1000 * 60 * 60);
+            return hoursDiff <= 24 && t.deviceId === device.id;
+        });
+
+        if (recentTransactions.length > 0) {
+            const totalChange = recentTransactions.reduce((sum, t) => {
+                return sum + (t.type === 'import' ? t.quantity : -t.quantity);
+            }, 0);
+
+            const changePercentage = Math.abs(totalChange / device.quantity);
+            if (changePercentage > alertSettings.largeChangeThreshold) {
+                createAlert({
+                    type: ALERT_TYPES.LARGE_CHANGE,
+                    severity: ALERT_SEVERITY.HIGH,
+                    title: `${device.name} có thay đổi lớn`,
+                    message: `Thay đổi trong 24h: ${totalChange > 0 ? '+' : ''}${totalChange} (${(changePercentage * 100).toFixed(1)}%)`,
+                    deviceId: device.id,
+                    deviceName: device.name
+                });
+            }
+        }
     });
+}
+
+// Thêm hàm kiểm tra cảnh báo định kỳ
+function startAlertMonitoring() {
+    // Kiểm tra ngay khi khởi động
+    checkAndCreateAlerts();
+    
+    // Kiểm tra mỗi 5 phút
+    setInterval(checkAndCreateAlerts, 5 * 60 * 1000);
+}
+
+// Cập nhật hàm initializeApp
+function initializeApp() {
+    // ... existing initialization code ...
+    
+    // Khởi tạo hệ thống cảnh báo
+    startAlertMonitoring();
 }
 
 // Tạo cảnh báo mới
@@ -900,16 +962,17 @@ function showAlertSettings() {
 // Lưu cài đặt cảnh báo
 function saveAlertSettings(event) {
     event.preventDefault();
-    const form = event.target;
+    const typeFilter = document.getElementById('alert-settings-type-filter');
+    const severityFilter = document.getElementById('alert-settings-severity-filter');
     
     alertSettings = {
-        lowStockThreshold: parseInt(form.lowStockThreshold.value),
-        inventoryMismatchThreshold: parseFloat(form.inventoryMismatchThreshold.value) / 100,
-        largeChangeThreshold: parseFloat(form.largeChangeThreshold.value) / 100,
+        lowStockThreshold: parseInt(typeFilter.value),
+        inventoryMismatchThreshold: parseFloat(severityFilter.value) / 100,
+        largeChangeThreshold: parseFloat(severityFilter.value) / 100,
         notificationMethods: {
-            inApp: form.notifyInApp.checked,
-            email: form.notifyEmail.checked,
-            sms: form.notifySMS.checked
+            inApp: document.getElementById('notifyInApp').checked,
+            email: document.getElementById('notifyEmail').checked,
+            sms: document.getElementById('notifySMS').checked
         }
     };
     
@@ -923,10 +986,7 @@ function initializeApp() {
     // ... existing initialization code ...
     
     // Khởi tạo hệ thống cảnh báo
-    checkAndCreateAlerts();
-    
-    // Kiểm tra cảnh báo định kỳ (mỗi 5 phút)
-    setInterval(checkAndCreateAlerts, 5 * 60 * 1000);
+    startAlertMonitoring();
 }
 
 // Export các hàm cần thiết
@@ -1194,19 +1254,22 @@ function updateTransactionPrice(deviceId, type) {
 // Cập nhật hàm handleTransactionSubmit
 async function handleTransactionSubmit(event, type) {
     event.preventDefault();
-    const form = event.target;
-    const formData = new FormData(form);
+    const form = document.getElementById('transaction-form');
+    const deviceSelect = document.getElementById('device-select');
+    const quantityInput = document.getElementById('quantity-input');
+    const priceInput = document.getElementById('price-input');
+    const totalAmountInput = document.getElementById('total-amount');
     
     try {
-        const deviceId = formData.get('deviceId');
+        const deviceId = form.deviceId.value;
         const device = devices.find(d => d.id === deviceId);
         if (!device) {
             throw new Error('Không tìm thấy thiết bị');
         }
 
-        const quantity = parseInt(formData.get('quantity'));
-        const price = parseFloat(formData.get('price'));
-        const totalAmount = parseFloat(formData.get('totalAmount'));
+        const quantity = parseInt(quantityInput.value) || 0;
+        const price = parseFloat(priceInput.value);
+        const totalAmount = parseFloat(totalAmountInput.value);
 
         // Kiểm tra số lượng xuất kho
         if (type === 'export' && quantity > device.quantity) {
@@ -1224,7 +1287,7 @@ async function handleTransactionSubmit(event, type) {
             date: new Date().toISOString(),
             user: 'Admin', // Thay thế bằng user thực tế
             status: 'COMPLETED',
-            note: formData.get('note')
+            note: form.note.value
         };
 
         // Thêm giao dịch mới vào mảng transactions
