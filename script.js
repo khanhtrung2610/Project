@@ -479,7 +479,7 @@ async function loadInitialData() {
         updateDevicesTable();
         updateAlerts();
         updateRecentTransactionsTable();
-    } catch (error) {
+        } catch (error) {
         console.error('Error loading initial data:', error);
         showNotification('Không thể tải dữ liệu ban đầu', 'error');
     }
@@ -594,11 +594,11 @@ function updateDevicesTable() {
 
     // Cập nhật bảng
     tbody.innerHTML = pageDevices.map(device => `
-        <tr>
-            <td>${device.id}</td>
-            <td>${device.name}</td>
+                <tr>
+                    <td>${device.id}</td>
+                    <td>${device.name}</td>
             <td>${device.category}</td>
-            <td>${device.quantity}</td>
+                    <td>${device.quantity}</td>
             <td>${formatCurrency(device.price)}</td>
             <td>
                 <span class="status ${getDeviceStatus(device)}">
@@ -615,8 +615,8 @@ function updateDevicesTable() {
                 <button onclick="deleteDevice('${device.id}')" class="btn delete-btn">
                     <i class="fas fa-trash"></i>
                 </button>
-            </td>
-        </tr>
+                    </td>
+                </tr>
     `).join('');
 
     // Cập nhật phân trang
@@ -996,7 +996,7 @@ function updateHistoryTable() {
                     <i class="fas fa-money-bill"></i>
                 </button>
             </td>
-        </tr>
+                </tr>
     `).join('');
 }
 
@@ -1362,7 +1362,7 @@ function updateRecentTransactionsTable() {
                     ${getStatusText(transaction.status)}
                 </span>
             </td>
-        </tr>
+                </tr>
     `).join('');
 }
 
@@ -1499,7 +1499,7 @@ function updatePaymentsTable() {
                     <i class="fas fa-edit"></i>
                 </button>
             </td>
-        </tr>
+                </tr>
     `).join('');
 
     // Cập nhật phân trang
@@ -1818,19 +1818,60 @@ function importPaymentsFromExcel() {
                 const jsonData = XLSX.utils.sheet_to_json(firstSheet);
 
                 // Chuyển đổi dữ liệu Excel thành định dạng thanh toán
-                const newPayments = jsonData.map(row => ({
-                    id: row['Mã thanh toán'] || generatePaymentId(),
-                    transactionId: row['Mã giao dịch'],
-                    amount: parseFloat(row['Số tiền']) || 0,
-                    date: new Date(row['Ngày']),
-                    type: row['Loại'],
-                    status: row['Trạng thái'],
-                    method: row['Phương thức'],
-                    note: row['Ghi chú'] || ''
-                }));
+                const newPayments = jsonData.map(row => {
+                    // Xử lý loại thanh toán
+                    let type = 'import';
+                    if (row['Loại']) {
+                        const typeStr = row['Loại'].toString().toLowerCase();
+                        type = typeStr.includes('xuất') ? 'export' : 'import';
+                    }
+
+                    // Xử lý trạng thái
+                    let status = 'pending';
+                    if (row['Trạng thái']) {
+                        const statusStr = row['Trạng thái'].toString().toLowerCase();
+                        if (statusStr.includes('hoàn thành')) status = 'completed';
+                        else if (statusStr.includes('hủy')) status = 'cancelled';
+                    }
+
+                    // Xử lý phương thức thanh toán
+                    let method = 'cash';
+                    if (row['Phương thức']) {
+                        const methodStr = row['Phương thức'].toString().toLowerCase();
+                        if (methodStr.includes('chuyển khoản')) method = 'bank_transfer';
+                        else if (methodStr.includes('thẻ')) method = 'credit_card';
+                    }
+
+                    // Xử lý ngày tháng
+                    let date = new Date().toISOString();
+                    if (row['Ngày']) {
+                        try {
+                            const dateObj = new Date(row['Ngày']);
+                            if (!isNaN(dateObj)) {
+                                date = dateObj.toISOString();
+                            }
+                        } catch (error) {
+                            console.warn('Invalid date format:', row['Ngày']);
+                        }
+                    }
+
+                    return {
+                        id: row['Mã thanh toán'] || generatePaymentId(),
+                        transactionId: row['Mã giao dịch'] || '',
+                        amount: parseFloat(row['Số tiền']) || 0,
+                        date: date,
+                        type: type,
+                        status: status,
+                        method: method,
+                        note: row['Ghi chú'] || ''
+                    };
+                });
 
                 // Thêm các thanh toán mới vào danh sách
                 payments = [...payments, ...newPayments];
+                
+                // Reset trang hiện tại về 1
+                currentPage = 1;
                 
                 // Cập nhật UI
                 updatePaymentsTable();
@@ -1949,3 +1990,27 @@ window.exportPaymentsToExcel = exportPaymentsToExcel;
 window.exportPaymentsToPDF = exportPaymentsToPDF;
 window.generateDeviceId = generateDeviceId;
 window.generatePaymentId = generatePaymentId;
+
+// Hàm chuyển đổi trạng thái thanh toán
+function getPaymentStatusText(status) {
+    const statusMap = {
+        'pending': 'Chờ xử lý',
+        'completed': 'Hoàn thành',
+        'cancelled': 'Đã hủy'
+    };
+    return statusMap[status] || status;
+}
+
+// Hàm chuyển đổi phương thức thanh toán
+function getPaymentMethodText(method) {
+    const methodMap = {
+        'cash': 'Tiền mặt',
+        'bank_transfer': 'Chuyển khoản',
+        'credit_card': 'Thẻ tín dụng'
+    };
+    return methodMap[method] || method;
+}
+
+// Export các hàm mới
+window.getPaymentStatusText = getPaymentStatusText;
+window.getPaymentMethodText = getPaymentMethodText;

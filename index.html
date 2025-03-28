@@ -36,6 +36,9 @@
                 <li data-section="payments">
                     <i class="fas fa-money-bill"></i> Thanh Toán
                 </li>
+                <li onclick="logout()" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                </li>
             </ul>
         </aside>
 
@@ -665,5 +668,25 @@
     </div>
 
     <script src="script.js"></script>
+    <script>
+    // Kiểm tra đăng nhập
+    function checkLogin() {
+        const isLoggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
+        if (!isLoggedIn) {
+            window.location.href = 'login.html';
+            return;
+        }
+    }
+
+    // Xử lý đăng xuất
+    function logout() {
+        sessionStorage.removeItem('isLoggedIn');
+        sessionStorage.removeItem('currentUser');
+        window.location.href = 'login.html';
+    }
+
+    // Kiểm tra đăng nhập khi trang được tải
+    window.addEventListener('load', checkLogin);
+    </script>
 </body>
 </html>
