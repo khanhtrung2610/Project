@@ -1,3 +1,5 @@
+const API_URL = 'http://localhost:3002/api';
+
 // Khởi tạo biến toàn cục
 let currentSection = 'dashboard';
 let devices = [];
@@ -483,37 +485,97 @@ function initializeNavigation() {
     });
 }
 
+// Xử lý chuyển đổi section
 function switchSection(sectionId) {
-    // Ẩn section hiện tại
-    document.querySelector(`.section.active`)?.classList.remove('active');
-    document.querySelector(`.sidebar ul li.active`)?.classList.remove('active');
+    // Ẩn tất cả các section
+    document.querySelectorAll('.section').forEach(section => {
+        section.classList.remove('active');
+    });
 
-    // Hiển thị section mới
-    document.querySelector(`#${sectionId}`)?.classList.add('active');
-    document.querySelector(`[data-section="${sectionId}"]`)?.classList.add('active');
-
-    // Cập nhật section hiện tại
+    // Hiển thị section được chọn
+    const selectedSection = document.getElementById(sectionId);
+    if (selectedSection) {
+        selectedSection.classList.add('active');
     currentSection = sectionId;
+
+        // Cập nhật trạng thái active của menu item
+        document.querySelectorAll('.top-nav ul li').forEach(item => {
+            item.classList.remove('active');
+            if (item.getAttribute('data-section') === sectionId) {
+                item.classList.add('active');
+            }
+        });
+
+        // Load dữ liệu cho section tương ứng
     loadSectionData(sectionId);
+    }
 }
+
+// Load dữ liệu cho section
+function loadSectionData(sectionId) {
+    switch(sectionId) {
+        case 'dashboard':
+            loadDashboardData();
+            break;
+        case 'devices':
+            loadDevices();
+            break;
+        case 'transactions':
+            loadTransactions();
+            break;
+        case 'history':
+            loadHistory();
+            break;
+        case 'alerts':
+            loadAlerts();
+            break;
+        case 'payments':
+            loadPayments();
+            break;
+    }
+}
+
+// Thêm event listeners cho menu items
+document.addEventListener('DOMContentLoaded', function() {
+    // Xử lý click cho menu items
+    document.querySelectorAll('.top-nav ul li[data-section]').forEach(item => {
+        item.addEventListener('click', function() {
+            const sectionId = this.getAttribute('data-section');
+            switchSection(sectionId);
+        });
+    });
+
+    // Load dữ liệu ban đầu cho dashboard
+    loadDashboardData();
+});
 
 // Load dữ liệu
 async function loadInitialData() {
     try {
-        // Trong môi trường development, sử dụng mock data
-        devices = mockDevices;
-        alerts = mockAlerts;
-        transactions = mockTransactions;
-        payments = mockPayments; // Thêm dòng này
+        const [devicesRes, alertsRes, transactionsRes, paymentsRes] = await Promise.all([
+            fetch(`${API_URL}/devices`),
+            fetch(`${API_URL}/alerts`),
+            fetch(`${API_URL}/transactions`),
+            fetch(`${API_URL}/payments`)
+        ]);
 
-        // Cập nhật UI
+        if (!devicesRes.ok || !alertsRes.ok || !transactionsRes.ok || !paymentsRes.ok) {
+            throw new Error('Failed to fetch data from server');
+        }
+
+        devices = await devicesRes.json();
+        alerts = await alertsRes.json();
+        transactions = await transactionsRes.json();
+        payments = await paymentsRes.json();
+        history = [...transactions, ...payments].sort((a, b) => new Date(b.date) - new Date(a.date));
+
         updateDashboardStats();
         updateDevicesTable();
         updateAlerts();
         updateRecentTransactionsTable();
-    } catch (error) {
+        } catch (error) {
         console.error('Error loading initial data:', error);
-        showNotification('Không thể tải dữ liệu ban đầu', 'error');
+        showNotification('Lỗi khi tải dữ liệu', 'error');
     }
 }
 
@@ -649,7 +711,7 @@ function updateDevicesTable() {
                 </span>
             </td>
             <td>
-                <button onclick="viewDevice('${device.id}')" class="btn view-btn">
+                <button onclick="viewDeviceDetail('${device.id}')" class="btn view-btn" title="Xem chi tiết">
                     <i class="fas fa-eye"></i>
                 </button>
                 <button onclick="editDevice('${device.id}')" class="btn edit-btn">
@@ -761,7 +823,14 @@ function getAlertIcon(severity) {
 
 function closeModal(modalId) {
     const modal = document.getElementById(modalId);
-    if (modal) modal.style.display = 'none';
+    if (modal) {
+        modal.style.display = 'none';
+        // Reset form nếu có
+        const form = modal.querySelector('form');
+        if (form) {
+            form.reset();
+        }
+    }
 }
 
 // Thêm hàm markAlertRead
@@ -775,6 +844,7 @@ function markAlertRead(alertId) {
     alert.read = true;
     updateAlerts();
     showNotification('Đã đánh dấu cảnh báo là đã đọc');
+    saveDataToStorage(); // Thêm dòng này
 }
 
 // Thêm hàm markAllAlertsAsRead
@@ -1070,8 +1140,8 @@ function updateHistoryTable() {
         if (historyFilters.endDate && new Date(h.date) > new Date(historyFilters.endDate)) return false;
         if (historyFilters.searchTerm) {
             const searchTerm = historyFilters.searchTerm.toLowerCase();
-            return h.deviceName.toLowerCase().includes(searchTerm) ||
-                   h.note.toLowerCase().includes(searchTerm);
+            return (h.deviceName || '').toLowerCase().includes(searchTerm) ||
+                   (h.note || '').toLowerCase().includes(searchTerm);
         }
         return true;
     });
@@ -1079,29 +1149,29 @@ function updateHistoryTable() {
     // Sắp xếp theo ngày mới nhất
     filteredHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    tbody.innerHTML = filteredHistory.map(item => `
-        <tr>
-            <td>${item.id}</td>
-            <td>
-                <span class="status-badge ${item.type === 'import' ? 'import' : 'export'}">
-                    ${item.type === 'import' ? 'Nhập kho' : 'Xuất kho'}
-                </span>
-            </td>
-            <td>${item.deviceName}</td>
-            <td>${item.quantity}</td>
-            <td>${formatDate(item.date)}</td>
-            <td>${item.user}</td>
-            <td>${item.note}</td>
-            <td>
-                <button onclick="viewHistoryDetail('${item.id}')" class="btn view-btn">
-                    <i class="fas fa-eye"></i>
-                </button>
-                <button onclick="viewPaymentByTransaction('${item.id}')" class="btn payment-btn">
-                    <i class="fas fa-money-bill"></i>
-                </button>
-            </td>
-                </tr>
-    `).join('');
+    tbody.innerHTML = filteredHistory.map(item => {
+        // Tính toán thành tiền
+        const totalAmount = parseFloat(item.quantity || 0) * parseFloat(item.price || 0);
+        
+        return `
+            <tr>
+                <td>${item.id || formatDate(item.date)}</td>
+                <td>
+                    <span class="status-badge ${item.type}">
+                        ${item.type === 'import' ? 'Nhập kho' : 'Xuất kho'}
+                    </span>
+                </td>
+                <td>${item.deviceName || 'Chưa cập nhật'}</td>
+                <td>${item.quantity || 0}</td>
+                <td>${formatCurrency(item.price || 0)}</td>
+                <td>${formatCurrency(totalAmount)}</td>
+                <td>${item.user || 'admin'}</td>
+                <td>
+                    <span class="status-badge">Còn hàng</span>
+                </td>
+            </tr>
+        `;
+    }).join('');
 }
 
 function viewHistoryDetail(historyId) {
@@ -1293,7 +1363,7 @@ function updateTransactionPrice(deviceId, type) {
     }
 }
 
-// Cập nhật hàm handleTransactionSubmit
+// Cập nhật hàm handleTransactionSubmit để sử dụng API
 async function handleTransactionSubmit(event, type) {
     event.preventDefault();
     const form = document.getElementById('transaction-form');
@@ -1319,7 +1389,6 @@ async function handleTransactionSubmit(event, type) {
         }
 
         const transactionData = {
-            id: generateTransactionId(),
             type,
             deviceId,
             deviceName: device.name,
@@ -1332,24 +1401,21 @@ async function handleTransactionSubmit(event, type) {
             note: form.note.value
         };
 
-        // Thêm giao dịch mới vào mảng transactions
-        transactions.unshift(transactionData);
-        
-        // Thêm giao dịch vào lịch sử
-        history.unshift(transactionData);
+        // Gọi API để tạo giao dịch mới
+        const response = await fetch(`${API_URL}/transactions`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(transactionData)
+        });
 
-        // Cập nhật số lượng thiết bị
-        if (type === 'import') {
-            device.quantity += quantity;
-        } else {
-            device.quantity -= quantity;
+        if (!response.ok) {
+            throw new Error('Lỗi khi tạo giao dịch');
         }
 
-        // Cập nhật UI
-        updateRecentTransactionsTable();
-        updateTransactionStats();
-        updateHistoryTable();
-        updateDevicesTable();
+        // Tải lại dữ liệu từ server
+        await loadInitialData();
 
         // Đóng modal
         closeModal('transaction-modal');
@@ -1548,15 +1614,15 @@ function loadPaymentsSection() {
             <td>
                 <div class="actions">
                     <button class="btn view-btn" onclick="viewPaymentDetail('${payment.id}')">
-                        <i class="fas fa-eye"></i>
-                    </button>
+                    <i class="fas fa-eye"></i>
+                </button>
                     <button class="btn edit-btn" onclick="editPayment('${payment.id}')">
-                        <i class="fas fa-edit"></i>
-                    </button>
+                    <i class="fas fa-edit"></i>
+                </button>
                     <button class="btn delete-btn" onclick="deletePayment('${payment.id}')">
                         <i class="fas fa-trash"></i>
-                    </button>
-                </div>
+                </button>
+            </div>
             </td>
         `;
         tableBody.appendChild(row);
@@ -1980,7 +2046,8 @@ function createPayment() {
     modal.style.display = 'block';
 }
 
-function handleCreatePayment() {
+// Cập nhật hàm handleCreatePayment để sử dụng API
+async function handleCreatePayment() {
     // Lấy dữ liệu từ form
     const amount = document.getElementById('paymentAmount').value;
     const method = document.getElementById('paymentMethod').value;
@@ -1993,9 +2060,9 @@ function handleCreatePayment() {
         return;
     }
 
+    try {
     // Tạo payment mới
     const newPayment = {
-        id: generatePaymentId(),
         amount: parseFloat(amount),
         method: method,
         status: status,
@@ -2004,12 +2071,21 @@ function handleCreatePayment() {
         createdBy: JSON.parse(sessionStorage.getItem('currentUser')).username
     };
 
-    // Thêm vào danh sách payments
-    payments.unshift(newPayment);
+        // Gọi API để tạo thanh toán mới
+        const response = await fetch(`${API_URL}/payments`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(newPayment)
+        });
 
-    // Cập nhật UI
-    updatePaymentStats();
-    updatePaymentsTable();
+        if (!response.ok) {
+            throw new Error('Lỗi khi tạo thanh toán');
+        }
+
+        // Tải lại dữ liệu từ server
+        await loadInitialData();
 
     // Đóng modal
     const modal = document.getElementById('paymentModal');
@@ -2017,6 +2093,10 @@ function handleCreatePayment() {
 
     // Hiển thị thông báo
     showNotification('Tạo phiếu thu thành công!', 'success');
+    } catch (error) {
+        console.error('Error creating payment:', error);
+        showNotification(error.message || 'Có lỗi xảy ra', 'error');
+    }
 }
 
 // Theme handling
@@ -2141,7 +2221,12 @@ function addDevice() {
 
     modal.innerHTML = `
         <div class="modal-content">
-            <h2>Thêm thiết bị mới</h2>
+            <div class="modal-header">
+                <h2>Thêm thiết bị mới</h2>
+                <button type="button" class="close-btn" onclick="closeModal('device-form-modal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
             <form id="device-form" onsubmit="handleDeviceSubmit(event)">
                 <div class="form-group">
                     <label>Tên thiết bị</label>
@@ -2167,18 +2252,18 @@ function addDevice() {
                 </div>
                 <div class="form-group">
                     <label>Ngưỡng cảnh báo</label>
-                    <input type="number" id="device-threshold" min="1">
+                    <input type="number" id="device-threshold" min="1" value="5">
                 </div>
                 <div class="form-group">
                     <label>Mô tả</label>
                     <textarea id="device-description"></textarea>
                 </div>
                 <div class="form-actions">
-                    <button type="submit" class="btn primary-btn">
-                        <i class="fas fa-save"></i> Lưu
-                    </button>
                     <button type="button" class="btn" onclick="closeModal('device-form-modal')">
                         <i class="fas fa-times"></i> Hủy
+                    </button>
+                    <button type="submit" class="btn primary-btn">
+                        <i class="fas fa-save"></i> Lưu
                     </button>
                 </div>
             </form>
@@ -2186,6 +2271,20 @@ function addDevice() {
     `;
     
     modal.style.display = 'block';
+    
+    // Thêm event listener để đóng modal khi click bên ngoài
+    modal.onclick = function(event) {
+        if (event.target === modal) {
+            closeModal('device-form-modal');
+        }
+    };
+
+    // Thêm event listener cho phím ESC
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeModal('device-form-modal');
+        }
+    });
 }
 
 function editDevice(deviceId) {
@@ -2247,31 +2346,33 @@ function editDevice(deviceId) {
     modal.style.display = 'block';
 }
 
-function deleteDevice(deviceId) {
+// Cập nhật hàm deleteDevice để sử dụng API
+async function deleteDevice(deviceId) {
     if (!confirm('Bạn có chắc chắn muốn xóa thiết bị này?')) {
         return;
     }
 
-    const deviceIndex = devices.findIndex(d => d.id === deviceId);
-    if (deviceIndex === -1) {
-        showNotification('Không tìm thấy thiết bị', 'error');
-        return;
-    }
+    try {
+        const response = await fetch(`${API_URL}/devices/${deviceId}`, {
+            method: 'DELETE'
+        });
 
-    // Kiểm tra xem thiết bị có đang được sử dụng trong giao dịch không
-    const hasTransactions = transactions.some(t => t.deviceId === deviceId);
-    if (hasTransactions) {
-        showNotification('Không thể xóa thiết bị đã có giao dịch', 'error');
-        return;
-    }
+        if (!response.ok) {
+            throw new Error('Lỗi khi xóa thiết bị');
+        }
 
-    devices.splice(deviceIndex, 1);
-    updateDevicesTable();
-    updateDashboardStats();
-    showNotification('Đã xóa thiết bị thành công', 'success');
+        // Tải lại dữ liệu từ server
+        await loadInitialData();
+        
+        showNotification('Đã xóa thiết bị thành công', 'success');
+    } catch (error) {
+        console.error('Error deleting device:', error);
+        showNotification(error.message || 'Có lỗi xảy ra', 'error');
+    }
 }
 
-function handleDeviceSubmit(event, deviceId = null) {
+// Cập nhật hàm handleDeviceSubmit để sử dụng API
+async function handleDeviceSubmit(event, deviceId = null) {
     event.preventDefault();
     
     const form = event.target;
@@ -2285,28 +2386,33 @@ function handleDeviceSubmit(event, deviceId = null) {
     };
 
     try {
+        let response;
         if (deviceId) {
             // Cập nhật thiết bị hiện có
-            const deviceIndex = devices.findIndex(d => d.id === deviceId);
-            if (deviceIndex === -1) {
-                throw new Error('Không tìm thấy thiết bị');
-            }
-            devices[deviceIndex] = {
-                ...devices[deviceIndex],
-                ...deviceData
-            };
+            response = await fetch(`${API_URL}/devices/${deviceId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(deviceData)
+            });
         } else {
             // Thêm thiết bị mới
-            const newDevice = {
-                id: generateDeviceId(),
-                ...deviceData
-            };
-            devices.push(newDevice);
+            response = await fetch(`${API_URL}/devices`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(deviceData)
+            });
         }
 
-        // Cập nhật UI
-        updateDevicesTable();
-        updateDashboardStats();
+        if (!response.ok) {
+            throw new Error('Lỗi khi lưu thiết bị');
+        }
+
+        // Tải lại dữ liệu từ server
+        await loadInitialData();
         
         // Đóng modal
         closeModal('device-form-modal');
@@ -2585,3 +2691,255 @@ function closeDeviceForm() {
 
 // Export the new function
 window.closeDeviceForm = closeDeviceForm;
+
+// Hàm lưu dữ liệu vào localStorage
+function saveDataToStorage() {
+    localStorage.setItem('devices', JSON.stringify(devices));
+    localStorage.setItem('alerts', JSON.stringify(alerts));
+    localStorage.setItem('transactions', JSON.stringify(transactions));
+    localStorage.setItem('payments', JSON.stringify(payments));
+    localStorage.setItem('history', JSON.stringify(history));
+}
+
+// Hàm khôi phục dữ liệu từ localStorage
+function loadDataFromStorage() {
+    const savedDevices = localStorage.getItem('devices');
+    const savedAlerts = localStorage.getItem('alerts');
+    const savedTransactions = localStorage.getItem('transactions');
+    const savedPayments = localStorage.getItem('payments');
+    const savedHistory = localStorage.getItem('history');
+
+    if (savedDevices) devices = JSON.parse(savedDevices);
+    if (savedAlerts) alerts = JSON.parse(savedAlerts);
+    if (savedTransactions) transactions = JSON.parse(savedTransactions);
+    if (savedPayments) payments = JSON.parse(savedPayments);
+    if (savedHistory) history = JSON.parse(savedHistory);
+}
+
+// Hàm load dữ liệu dashboard
+async function loadDashboardData() {
+    try {
+        // Cập nhật thống kê
+        updateDashboardStats();
+        
+        // Cập nhật các biểu đồ
+        updateCharts();
+        
+        // Cập nhật bảng giao dịch gần đây
+        updateRecentTransactionsTable();
+        
+        // Cập nhật danh sách cảnh báo
+        updateAlerts();
+    } catch (error) {
+        console.error('Error loading dashboard data:', error);
+        showNotification('Lỗi khi tải dữ liệu dashboard', 'error');
+    }
+}
+
+// Hàm chỉnh sửa thanh toán
+function editPayment(paymentId) {
+    const payment = payments.find(p => p.id === paymentId);
+    if (!payment) {
+        showNotification('Không tìm thấy thông tin thanh toán', 'error');
+        return;
+    }
+
+    const modal = document.getElementById('payment-modal');
+    if (!modal) return;
+
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h2>Chỉnh sửa thanh toán</h2>
+            <form id="payment-form" onsubmit="handlePaymentSubmit(event, '${paymentId}')">
+                <div class="form-group">
+                    <label>Số tiền</label>
+                    <input type="number" id="payment-amount" value="${payment.amount}" required min="0">
+                </div>
+                <div class="form-group">
+                    <label>Phương thức thanh toán</label>
+                    <select id="payment-method" required>
+                        <option value="cash" ${payment.method === 'cash' ? 'selected' : ''}>Tiền mặt</option>
+                        <option value="bank_transfer" ${payment.method === 'bank_transfer' ? 'selected' : ''}>Chuyển khoản</option>
+                        <option value="credit_card" ${payment.method === 'credit_card' ? 'selected' : ''}>Thẻ tín dụng</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Trạng thái</label>
+                    <select id="payment-status" required>
+                        <option value="pending" ${payment.status === 'pending' ? 'selected' : ''}>Chờ xử lý</option>
+                        <option value="completed" ${payment.status === 'completed' ? 'selected' : ''}>Hoàn thành</option>
+                        <option value="cancelled" ${payment.status === 'cancelled' ? 'selected' : ''}>Đã hủy</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Ghi chú</label>
+                    <textarea id="payment-note">${payment.note || ''}</textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn primary-btn">
+                        <i class="fas fa-save"></i> Lưu
+                    </button>
+                    <button type="button" class="btn" onclick="closeModal('payment-modal')">
+                        <i class="fas fa-times"></i> Hủy
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+    
+    modal.style.display = 'block';
+}
+
+// Hàm xử lý submit form thanh toán
+async function handlePaymentSubmit(event, paymentId = null) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const paymentData = {
+        amount: parseFloat(form.querySelector('#payment-amount').value),
+        method: form.querySelector('#payment-method').value,
+        status: form.querySelector('#payment-status').value,
+        note: form.querySelector('#payment-note').value
+    };
+
+    try {
+        let response;
+        if (paymentId) {
+            // Cập nhật thanh toán hiện có
+            response = await fetch(`${API_URL}/payments/${paymentId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(paymentData)
+            });
+        } else {
+            // Thêm thanh toán mới
+            response = await fetch(`${API_URL}/payments`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(paymentData)
+            });
+        }
+
+        if (!response.ok) {
+            throw new Error('Lỗi khi lưu thanh toán');
+        }
+
+        // Tải lại dữ liệu từ server
+        await loadInitialData();
+        
+        // Đóng modal
+        closeModal('payment-modal');
+        
+        // Hiển thị thông báo
+        showNotification(
+            paymentId ? 'Cập nhật thanh toán thành công' : 'Thêm thanh toán thành công',
+            'success'
+        );
+    } catch (error) {
+        console.error('Error handling payment:', error);
+        showNotification(error.message || 'Có lỗi xảy ra', 'error');
+    }
+}
+
+// Export các hàm mới
+window.editPayment = editPayment;
+window.handlePaymentSubmit = handlePaymentSubmit;
+
+// Hàm xóa thanh toán
+async function deletePayment(paymentId) {
+    if (!confirm('Bạn có chắc chắn muốn xóa thanh toán này?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/payments/${paymentId}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            throw new Error('Lỗi khi xóa thanh toán');
+        }
+
+        // Tải lại dữ liệu từ server
+        await loadInitialData();
+        
+        showNotification('Đã xóa thanh toán thành công', 'success');
+    } catch (error) {
+        console.error('Error deleting payment:', error);
+        showNotification(error.message || 'Có lỗi xảy ra', 'error');
+    }
+}
+
+// Export hàm mới
+window.deletePayment = deletePayment;
+
+// Hàm xem chi tiết thiết bị
+function viewDeviceDetail(deviceId) {
+    const device = devices.find(d => d.id === deviceId);
+    if (!device) {
+        showNotification('Không tìm thấy thông tin thiết bị', 'error');
+        return;
+    }
+
+    const modal = document.getElementById('device-detail-modal');
+    if (!modal) return;
+
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h2>Chi tiết thiết bị</h2>
+            <div class="device-info">
+                <div class="info-group">
+                    <label>Mã thiết bị:</label>
+                    <span>${device.id}</span>
+                </div>
+                <div class="info-group">
+                    <label>Tên thiết bị:</label>
+                    <span>${device.name}</span>
+                </div>
+                <div class="info-group">
+                    <label>Danh mục:</label>
+                    <span>${device.category}</span>
+                </div>
+                <div class="info-group">
+                    <label>Số lượng:</label>
+                    <span>${device.quantity}</span>
+                </div>
+                <div class="info-group">
+                    <label>Đơn giá:</label>
+                    <span>${formatCurrency(device.price)}</span>
+                </div>
+                <div class="info-group">
+                    <label>Ngưỡng cảnh báo:</label>
+                    <span>${device.threshold}</span>
+                </div>
+                <div class="info-group">
+                    <label>Trạng thái:</label>
+                    <span class="status ${getDeviceStatus(device)}">
+                        ${getStatusText(device)}
+                    </span>
+                </div>
+                <div class="info-group">
+                    <label>Mô tả:</label>
+                    <span>${device.description || 'Không có'}</span>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button onclick="editDevice('${device.id}')" class="btn edit-btn">
+                    <i class="fas fa-edit"></i> Chỉnh sửa
+                </button>
+                <button onclick="closeModal('device-detail-modal')" class="btn">
+                    <i class="fas fa-times"></i> Đóng
+                </button>
+            </div>
+        </div>
+    `;
+    
+    modal.style.display = 'block';
+}
+
+// Export hàm mới
+window.viewDeviceDetail = viewDeviceDetail;
