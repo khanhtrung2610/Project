@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost/Project-main/api';
+const API_URL = 'http://localhost:3002/api';
 
 // Khởi tạo biến toàn cục
 let currentSection = 'dashboard';
@@ -1150,32 +1150,22 @@ function updateHistoryTable() {
     filteredHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     tbody.innerHTML = filteredHistory.map(item => {
-        // Đảm bảo các giá trị hợp lệ
-        const quantity = parseInt(item.quantity) || 0;
-        const price = parseFloat(item.price) || 0;
-        
-        // Tính toán thành tiền dựa trên loại giao dịch
-        const totalAmount = item.type === 'import' ? 
-            quantity * price : // Nhập kho: dương
-            -(quantity * price); // Xuất kho: âm
-
+        const totalAmount = item.quantity * item.price;
         return `
             <tr>
-                <td>${formatDate(item.date) || 'N/A'}</td>
+                <td>${formatDate(item.date)}</td>
                 <td>
-                    <span class="status-badge ${item.type || 'unknown'}">
+                    <span class="status-badge ${item.type}">
                         ${item.type === 'import' ? 'Nhập kho' : 'Xuất kho'}
                     </span>
                 </td>
                 <td>${item.deviceName || 'Chưa cập nhật'}</td>
-                <td>${quantity}</td>
-                <td>${formatCurrency(price)}</td>
+                <td>${item.quantity}</td>
+                <td>${formatCurrency(item.price)}</td>
                 <td>${formatCurrency(totalAmount)}</td>
                 <td>${item.user || 'admin'}</td>
                 <td>
-                    <span class="status-badge ${item.status?.toLowerCase() || 'completed'}">
-                        ${item.status || 'COMPLETED'}
-                    </span>
+                    <span class="status-badge">Còn hàng</span>
                 </td>
             </tr>
         `;
@@ -1397,19 +1387,20 @@ async function handleTransactionSubmit(event, type) {
         }
 
         const transactionData = {
-            id: 'T' + Date.now(), // Thêm ID cho giao dịch
             type,
-            device_id: deviceId,
+            deviceId,
+            deviceName: device.name,
             quantity,
             price,
-            total_amount: totalAmount,
+            totalAmount,
             date: new Date().toISOString(),
-            user: 'Admin',
+            user: 'Admin', // Thay thế bằng user thực tế
+            status: 'COMPLETED',
             note: form.note.value
         };
 
         // Gọi API để tạo giao dịch mới
-        const response = await fetch(`${API_URL}/transactions.php`, {
+        const response = await fetch(`${API_URL}/transactions`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1421,12 +1412,7 @@ async function handleTransactionSubmit(event, type) {
             throw new Error('Lỗi khi tạo giao dịch');
         }
 
-        const result = await response.json();
-        if (result.error) {
-            throw new Error(result.error);
-        }
-
-        // Tải lại dữ liệu
+        // Tải lại dữ liệu từ server
         await loadInitialData();
 
         // Đóng modal
@@ -2955,84 +2941,3 @@ function viewDeviceDetail(deviceId) {
 
 // Export hàm mới
 window.viewDeviceDetail = viewDeviceDetail;
-
-// API endpoints
-const API_BASE_URL = 'http://localhost/Project-main/api';
-
-// Hàm gọi API
-async function fetchAPI(endpoint, options = {}) {
-    try {
-        const response = await fetch(`${API_URL}/${endpoint}`, {
-            ...options,
-            headers: {
-                'Content-Type': 'application/json',
-                ...options.headers
-            }
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        return data;
-    } catch (error) {
-        console.error(`API Error: ${error.message}`);
-        throw error;
-    }
-}
-
-// Cập nhật các hàm để sử dụng API
-async function loadDevices() {
-    try {
-        devices = await fetchAPI('devices.php');
-        updateDevicesTable();
-    } catch (error) {
-        console.error('Error loading devices:', error);
-    }
-}
-
-async function addDevice(deviceData) {
-    try {
-        await fetchAPI('devices.php', {
-            method: 'POST',
-            body: JSON.stringify(deviceData)
-        });
-        showNotification('Thêm thiết bị thành công', 'success');
-        loadDevices();
-    } catch (error) {
-        console.error('Error adding device:', error);
-    }
-}
-
-async function updateDevice(deviceData) {
-    try {
-        await fetchAPI('devices.php', {
-            method: 'PUT',
-            body: JSON.stringify(deviceData)
-        });
-        showNotification('Cập nhật thiết bị thành công', 'success');
-        loadDevices();
-    } catch (error) {
-        console.error('Error updating device:', error);
-    }
-}
-
-async function deleteDevice(deviceId) {
-    try {
-        await fetchAPI(`devices.php?id=${deviceId}`, {
-            method: 'DELETE'
-        });
-        showNotification('Xóa thiết bị thành công', 'success');
-        loadDevices();
-    } catch (error) {
-        console.error('Error deleting device:', error);
-    }
-}
-
-// Khởi tạo dữ liệu khi trang web được tải
-document.addEventListener('DOMContentLoaded', () => {
-    loadDevices();
-    // ... existing code ...
-});
