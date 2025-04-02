@@ -2962,22 +2962,23 @@ const API_BASE_URL = 'http://localhost/Project-main/api';
 // Hàm gọi API
 async function fetchAPI(endpoint, options = {}) {
     try {
-        const response = await fetch(`${API_BASE_URL}/${endpoint}`, {
+        const response = await fetch(`${API_URL}/${endpoint}`, {
             ...options,
             headers: {
                 'Content-Type': 'application/json',
                 ...options.headers
             }
         });
-        
+
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
         }
-        
-        return await response.json();
+
+        const data = await response.json();
+        return data;
     } catch (error) {
-        console.error('API Error:', error);
-        showNotification('Có lỗi xảy ra khi gọi API', 'error');
+        console.error(`API Error: ${error.message}`);
         throw error;
     }
 }
