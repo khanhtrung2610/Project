@@ -3053,7 +3053,7 @@ canvas {
     background: #dc2626;
     color: white;
     border-radius: 50%;
-    width: 20px;
+        width: 20px;
     height: 20px;
     display: flex;
     align-items: center;
@@ -3352,7 +3352,7 @@ th {
     transition: all 0.3s ease;
     border: none;
 }
-
+            
 .device-actions .btn i {
     font-size: 16px;
 }
