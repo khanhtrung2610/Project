@@ -45,11 +45,11 @@ git clone [repository-url]
 
 ## 👥 Thành Viên Nhóm
 
-1. [Tên thành viên 1] - Vai trò
-2. [Tên thành viên 2] - Vai trò
-3. [Tên thành viên 3] - Vai trò
-4. [Tên thành viên 4] - Vai trò
-5. [Tên thành viên 5] - Vai trò
+1. Đoàn Hoàng Khánh Trung - Vai trò
+2. Vũ Quang Vinh - Vai trò
+3. Vũ Minh Hiếu - Vai trò
+4. Trần Ngô Anh Dũng - Vai trò
+5. Bùi Đình Tuấn - Vai trò
 
 ## 📄 Giấy Phép
 
