@@ -1,4 +1,5 @@
-const API_URL = 'http://localhost:3002/api';
+// API URL Configuration
+const API_URL = 'http://localhost:3000/api';
 
 // Khởi tạo biến toàn cục
 let currentSection = 'dashboard';
@@ -924,10 +925,13 @@ function startAlertMonitoring() {
 
 // Cập nhật hàm initializeApp
 function initializeApp() {
-    // ... existing initialization code ...
+    // Load cài đặt cảnh báo
+    loadAlertSettings();
     
     // Khởi tạo hệ thống cảnh báo
     startAlertMonitoring();
+    
+    // ... existing initialization code ...
 }
 
 // Tạo cảnh báo mới
@@ -1074,31 +1078,70 @@ function showAlertSettings() {
 // Lưu cài đặt cảnh báo
 function saveAlertSettings(event) {
     event.preventDefault();
-    const typeFilter = document.getElementById('alert-settings-type-filter');
-    const severityFilter = document.getElementById('alert-settings-severity-filter');
     
-    alertSettings = {
-        lowStockThreshold: parseInt(typeFilter.value),
-        inventoryMismatchThreshold: parseFloat(severityFilter.value) / 100,
-        largeChangeThreshold: parseFloat(severityFilter.value) / 100,
+    // Lấy giá trị từ form
+    const form = document.getElementById('alert-settings-form');
+    if (!form) return;
+
+    const newSettings = {
+        lowStockThreshold: parseInt(form.querySelector('[name="lowStockThreshold"]').value),
+        inventoryMismatchThreshold: parseFloat(form.querySelector('[name="inventoryMismatchThreshold"]').value) / 100,
+        largeChangeThreshold: parseFloat(form.querySelector('[name="largeChangeThreshold"]').value) / 100,
         notificationMethods: {
-            inApp: document.getElementById('notifyInApp').checked,
-            email: document.getElementById('notifyEmail').checked,
-            sms: document.getElementById('notifySMS').checked
+            inApp: form.querySelector('[name="notifyInApp"]').checked,
+            email: form.querySelector('[name="notifyEmail"]').checked,
+            sms: form.querySelector('[name="notifySMS"]').checked
         }
     };
+
+    // Cập nhật alertSettings
+    alertSettings = newSettings;
+
+    // Lưu vào localStorage
+    localStorage.setItem('alertSettings', JSON.stringify(alertSettings));
     
+    // Đóng modal
     closeModal('alert-settings-modal');
-    showNotification('Đã lưu cài đặt cảnh báo');
-    checkAndCreateAlerts(); // Kiểm tra lại các cảnh báo với cài đặt mới
+    
+    // Hiển thị thông báo
+    showNotification('Đã lưu cài đặt cảnh báo', 'success');
+    
+    // Kiểm tra lại các cảnh báo với cài đặt mới
+    checkAndCreateAlerts();
 }
 
-// Thêm vào hàm initializeApp
+// Thêm hàm load cài đặt cảnh báo khi khởi động
+function loadAlertSettings() {
+    const savedSettings = localStorage.getItem('alertSettings');
+    if (savedSettings) {
+        try {
+            alertSettings = JSON.parse(savedSettings);
+        } catch (error) {
+            console.error('Error loading alert settings:', error);
+            // Nếu có lỗi, sử dụng cài đặt mặc định
+            alertSettings = {
+                lowStockThreshold: 10,
+                inventoryMismatchThreshold: 0.2,
+                largeChangeThreshold: 0.3,
+                notificationMethods: {
+                    inApp: true,
+                    email: false,
+                    sms: false
+                }
+            };
+        }
+    }
+}
+
+// Cập nhật hàm initializeApp để load cài đặt cảnh báo
 function initializeApp() {
-    // ... existing initialization code ...
+    // Load cài đặt cảnh báo
+    loadAlertSettings();
     
     // Khởi tạo hệ thống cảnh báo
     startAlertMonitoring();
+    
+    // ... existing initialization code ...
 }
 
 // Export các hàm cần thiết
@@ -1150,20 +1193,27 @@ function updateHistoryTable() {
     filteredHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     tbody.innerHTML = filteredHistory.map(item => {
-        const totalAmount = item.quantity * item.price;
+        // Kiểm tra và xử lý các giá trị undefined hoặc null
+        const deviceName = item.deviceName || 'Chưa cập nhật';
+        const quantity = item.quantity || 0;
+        const price = item.price || 0;
+        const totalAmount = quantity * price;
+        const user = item.user || 'admin';
+        const date = item.date ? formatDate(item.date) : 'Chưa cập nhật';
+
         return `
             <tr>
-                <td>${formatDate(item.date)}</td>
+                <td>${date}</td>
                 <td>
                     <span class="status-badge ${item.type}">
                         ${item.type === 'import' ? 'Nhập kho' : 'Xuất kho'}
                     </span>
                 </td>
-                <td>${item.deviceName || 'Chưa cập nhật'}</td>
-                <td>${item.quantity}</td>
-                <td>${formatCurrency(item.price)}</td>
+                <td>${deviceName}</td>
+                <td>${quantity}</td>
+                <td>${formatCurrency(price)}</td>
                 <td>${formatCurrency(totalAmount)}</td>
-                <td>${item.user || 'admin'}</td>
+                <td>${user}</td>
                 <td>
                     <span class="status-badge">Còn hàng</span>
                 </td>
@@ -2409,6 +2459,9 @@ async function handleDeviceSubmit(event, deviceId = null) {
             throw new Error('Lỗi khi lưu thiết bị');
         }
 
+        // Xóa dữ liệu đã lưu sau khi submit thành công
+        clearSavedFormData('device-form');
+
         // Tải lại dữ liệu từ server
         await loadInitialData();
         
@@ -2878,66 +2931,598 @@ window.deletePayment = deletePayment;
 // Hàm xem chi tiết thiết bị
 function viewDeviceDetail(deviceId) {
     const device = devices.find(d => d.id === deviceId);
-    if (!device) {
-        showNotification('Không tìm thấy thông tin thiết bị', 'error');
-        return;
-    }
+    if (!device) return;
 
     const modal = document.getElementById('device-detail-modal');
     if (!modal) return;
 
+    // Lấy ảnh từ localStorage
+    const savedImage = getDeviceImage(deviceId);
+    const imageUrl = savedImage ? savedImage.dataUrl : `https://placehold.co/800x600?text=${device.category}+Image`;
+
     modal.innerHTML = `
         <div class="modal-content">
+            <div class="modal-header">
             <h2>Chi tiết thiết bị</h2>
+                <button type="button" class="close-btn" onclick="closeModal('device-detail-modal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="device-detail-content">
             <div class="device-info">
-                <div class="info-group">
-                    <label>Mã thiết bị:</label>
-                    <span>${device.id}</span>
+                    <p><strong>Tên thiết bị:</strong> ${device.name}</p>
+                    <p><strong>Danh mục:</strong> ${device.category}</p>
+                    <p><strong>Số lượng:</strong> ${device.quantity}</p>
+                    <p><strong>Đơn giá:</strong> ${formatCurrency(device.price)}</p>
+                    <p><strong>Ngưỡng cảnh báo:</strong> ${device.threshold}</p>
+                    <p><strong>Mô tả:</strong> ${device.description || 'Không có mô tả'}</p>
                 </div>
-                <div class="info-group">
-                    <label>Tên thiết bị:</label>
-                    <span>${device.name}</span>
+                <div class="device-image-section">
+                    <h3>Hình ảnh thiết bị</h3>
+                    <div class="device-image-container" id="device-image-container-${deviceId}">
+                        <img src="${imageUrl}" class="device-preview-image" id="device-image-${deviceId}" onclick="openImageModal('${imageUrl}')">
                 </div>
-                <div class="info-group">
-                    <label>Danh mục:</label>
-                    <span>${device.category}</span>
+                    <div class="image-upload-section">
+                        <input type="file" id="upload-device-image" accept="image/*" style="display: none">
+                        <button class="btn primary-btn" onclick="document.getElementById('upload-device-image').click()">
+                            <i class="fas fa-upload"></i> Tải ảnh lên
+                        </button>
                 </div>
-                <div class="info-group">
-                    <label>Số lượng:</label>
-                    <span>${device.quantity}</span>
                 </div>
-                <div class="info-group">
-                    <label>Đơn giá:</label>
-                    <span>${formatCurrency(device.price)}</span>
                 </div>
-                <div class="info-group">
-                    <label>Ngưỡng cảnh báo:</label>
-                    <span>${device.threshold}</span>
                 </div>
-                <div class="info-group">
-                    <label>Trạng thái:</label>
-                    <span class="status ${getDeviceStatus(device)}">
-                        ${getStatusText(device)}
-                    </span>
-                </div>
-                <div class="info-group">
-                    <label>Mô tả:</label>
-                    <span>${device.description || 'Không có'}</span>
-                </div>
-            </div>
-            <div class="modal-actions">
-                <button onclick="editDevice('${device.id}')" class="btn edit-btn">
-                    <i class="fas fa-edit"></i> Chỉnh sửa
-                </button>
-                <button onclick="closeModal('device-detail-modal')" class="btn">
-                    <i class="fas fa-times"></i> Đóng
-                </button>
-            </div>
-        </div>
     `;
-    
+
+    // Thêm event listener cho input file
+    const fileInput = modal.querySelector('#upload-device-image');
+    fileInput.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            handleImageUpload(file, deviceId);
+        }
+    });
+
     modal.style.display = 'block';
 }
 
-// Export hàm mới
-window.viewDeviceDetail = viewDeviceDetail;
+async function handleImageUpload(file, deviceId) {
+    // Kiểm tra kích thước file (giới hạn 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        showNotification('Kích thước ảnh không được vượt quá 5MB', 'error');
+        return;
+    }
+
+    // Kiểm tra định dạng file
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+        showNotification('Chỉ chấp nhận file ảnh định dạng JPG, PNG hoặc GIF', 'error');
+        return;
+    }
+
+    try {
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            const imageData = {
+                dataUrl: e.target.result,
+                name: file.name,
+                type: file.type,
+                lastModified: file.lastModified
+            };
+
+            // Lưu vào localStorage
+            const deviceImages = JSON.parse(localStorage.getItem('deviceImages') || '{}');
+            deviceImages[deviceId] = imageData;
+            localStorage.setItem('deviceImages', JSON.stringify(deviceImages));
+
+            // Cập nhật hiển thị ảnh ngay lập tức
+            const img = document.getElementById(`device-image-${deviceId}`);
+            if (img) {
+                img.src = imageData.dataUrl;
+                img.classList.add('image-uploaded');
+            }
+
+            showNotification('Tải ảnh lên thành công', 'success');
+        };
+
+        reader.onerror = () => {
+            showNotification('Có lỗi xảy ra khi đọc file ảnh', 'error');
+        };
+
+        reader.readAsDataURL(file);
+    } catch (error) {
+        console.error('Error uploading image:', error);
+        showNotification('Có lỗi xảy ra khi tải ảnh lên', 'error');
+    }
+}
+
+function getDeviceImage(deviceId) {
+    try {
+        const deviceImages = JSON.parse(localStorage.getItem('deviceImages') || '{}');
+        return deviceImages[deviceId];
+    } catch (error) {
+        console.error('Error getting device image:', error);
+        return null;
+    }
+}
+
+// Device Image Configuration
+const DEVICE_IMAGES = {
+    'system': {
+        color: 'dc3545',
+        images: [
+            {
+                url: 'https://placehold.co/800x600',
+                caption: 'Tổng quan hệ thống',
+                description: 'Hiển thị toàn bộ hệ thống và các kết nối'
+            },
+            {
+                url: 'https://placehold.co/800x600',
+                caption: 'Trạng thái hoạt động',
+                description: 'Biểu đồ và thông số hoạt động của hệ thống'
+            }
+        ]
+    },
+    'device': {
+        color: 'ffc107',
+        images: [
+            {
+                url: 'https://placehold.co/800x600',
+                caption: 'Thiết bị',
+                description: 'Hình ảnh chi tiết của thiết bị'
+            },
+            {
+                url: 'https://placehold.co/800x600',
+                caption: 'Vị trí lắp đặt',
+                description: 'Vị trí và cách thức lắp đặt thiết bị'
+            },
+            {
+                url: 'https://placehold.co/800x600',
+                caption: 'Thông số kỹ thuật',
+                description: 'Các thông số và cấu hình của thiết bị'
+            }
+        ]
+    },
+    'security': {
+        color: '17a2b8',
+        images: [
+            {
+                url: 'https://placehold.co/800x600',
+                caption: 'Cảnh báo bảo mật',
+                description: 'Thông tin về cảnh báo bảo mật'
+            },
+            {
+                url: 'https://placehold.co/800x600',
+                caption: 'Log hoạt động',
+                description: 'Lịch sử hoạt động và cảnh báo'
+            }
+        ]
+    }
+};
+
+// Device Image Handler
+function loadDeviceImages(type, deviceId) {
+    const deviceType = DEVICE_IMAGES[type] || DEVICE_IMAGES['device'];
+    const imageGrid = document.createElement('div');
+    imageGrid.className = 'device-image-grid';
+
+    deviceType.images.forEach((image, index) => {
+        const imageUrl = `https://placehold.co/800x600?text=${encodeURIComponent(image.caption)}&bg=${deviceType.color}&text=ffffff`;
+        
+        const imageItem = document.createElement('div');
+        imageItem.className = 'device-image-item';
+        imageItem.innerHTML = `
+            <img src="${imageUrl}" alt="${image.caption}" loading="lazy">
+            <div class="device-image-caption">
+                <div class="caption-title">${image.caption}</div>
+                <div class="caption-description">${image.description}</div>
+                </div>
+        `;
+        
+        imageItem.style.animationDelay = `${index * 0.1}s`;
+        imageItem.addEventListener('click', () => openImageModal(imageUrl, image));
+        imageGrid.appendChild(imageItem);
+    });
+
+    return imageGrid;
+}
+
+// Image Modal Handler
+function createImageModal() {
+    const modal = document.createElement('div');
+    modal.className = 'image-modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <button class="modal-close">&times;</button>
+            <img class="modal-image" src="" alt="Device Image" loading="lazy">
+            <div class="modal-info">
+                <h3 class="modal-title"></h3>
+                <p class="modal-description"></p>
+                </div>
+            </div>
+    `;
+
+    // Đóng modal khi click bên ngoài
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeImageModal(modal);
+        }
+    });
+
+    // Đóng modal khi nhấn ESC
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeImageModal(modal);
+        }
+    });
+
+    modal.querySelector('.modal-close').addEventListener('click', () => {
+        closeImageModal(modal);
+    });
+
+    document.body.appendChild(modal);
+    return modal;
+}
+
+function openImageModal(imageUrl, imageData) {
+    const modal = document.querySelector('.image-modal') || createImageModal();
+    const modalImage = modal.querySelector('.modal-image');
+    const modalTitle = modal.querySelector('.modal-title');
+    const modalDescription = modal.querySelector('.modal-description');
+
+    // Hiển thị loading spinner trong khi ảnh đang tải
+    modalImage.style.opacity = '0';
+    modalImage.onload = () => {
+        modalImage.style.opacity = '1';
+    };
+
+    modalImage.src = imageUrl;
+    modalTitle.textContent = imageData.caption;
+    modalDescription.textContent = imageData.description;
+
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden'; // Prevent scrolling when modal is open
+}
+
+function closeImageModal(modal) {
+    modal.classList.remove('active');
+    document.body.style.overflow = ''; // Restore scrolling
+}
+
+// Alert Item Click Handler
+document.querySelectorAll('.alert-item').forEach(item => {
+    item.addEventListener('click', () => {
+        const deviceId = item.dataset.deviceId;
+        const alertType = item.dataset.type || 'device';
+        const details = item.nextElementSibling;
+        
+        if (details && details.classList.contains('alert-details')) {
+            // Remove existing images if any
+            const existingImages = details.querySelector('.device-image-container');
+            if (existingImages) {
+                existingImages.remove();
+            }
+
+            // Add new images
+            const imageContainer = document.createElement('div');
+            imageContainer.className = 'device-image-container fade-in';
+            imageContainer.appendChild(loadDeviceImages(alertType, deviceId));
+            
+            // Insert after content
+            const content = details.querySelector('.alert-details-content');
+            if (content) {
+                content.after(imageContainer);
+            } else {
+                details.appendChild(imageContainer);
+            }
+            
+            // Toggle active state
+            item.classList.toggle('active');
+        }
+    });
+});
+
+// Hàm xử lý upload ảnh
+async function uploadDeviceImage(deviceId) {
+    const fileInput = document.getElementById('upload-device-image');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        showNotification('Vui lòng chọn ảnh để tải lên', 'error');
+        return;
+    }
+
+    // Kiểm tra kích thước file (giới hạn 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        showNotification('Kích thước ảnh không được vượt quá 5MB', 'error');
+        return;
+    }
+
+    // Kiểm tra định dạng file
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+        showNotification('Chỉ chấp nhận file ảnh định dạng JPG, PNG hoặc GIF', 'error');
+        return;
+    }
+
+    try {
+        // Đọc file thành URL
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            const imageUrl = e.target.result;
+            
+            // Tìm thiết bị trong mảng devices
+            const deviceIndex = devices.findIndex(d => d.id === deviceId);
+            if (deviceIndex !== -1) {
+                // Cập nhật ảnh trong object thiết bị
+                devices[deviceIndex].image = imageUrl;
+                
+                // Lưu vào localStorage
+                localStorage.setItem('devices', JSON.stringify(devices));
+                
+                // Cập nhật hiển thị ảnh
+                const imageElement = document.getElementById('device-image');
+                if (imageElement) {
+                    imageElement.src = imageUrl;
+                    imageElement.classList.add('image-uploaded');
+                }
+                
+                // Hiển thị thông báo thành công
+                showNotification('Tải ảnh lên thành công', 'success');
+
+                // Đóng modal chi tiết thiết bị hiện tại
+                closeModal('device-detail-modal');
+                
+                // Mở lại modal để refresh nội dung
+                setTimeout(() => {
+                    viewDeviceDetail(deviceId);
+                }, 300);
+            }
+        };
+        reader.readAsDataURL(file);
+    } catch (error) {
+        console.error('Error uploading image:', error);
+        showNotification('Có lỗi xảy ra khi tải ảnh lên', 'error');
+    }
+}
+
+// Hàm lưu dữ liệu vào localStorage
+function saveFormData(formId, data) {
+    localStorage.setItem(formId, JSON.stringify(data));
+}
+
+// Hàm lấy dữ liệu từ localStorage
+function loadFormData(formId) {
+    const data = localStorage.getItem(formId);
+    return data ? JSON.parse(data) : null;
+}
+
+// Hàm tự động lưu dữ liệu form khi người dùng nhập
+function setupFormAutosave(formId) {
+    const form = document.getElementById(formId);
+    if (!form) return;
+
+    // Lấy dữ liệu đã lưu và điền vào form
+    const savedData = loadFormData(formId);
+    if (savedData) {
+        Object.keys(savedData).forEach(key => {
+            const input = form.querySelector(`[name="${key}"]`);
+            if (input) {
+                input.value = savedData[key];
+            }
+        });
+    }
+
+    // Lưu dữ liệu khi người dùng nhập
+    form.addEventListener('input', (e) => {
+        const formData = {};
+        const formElements = form.elements;
+        for (let i = 0; i < formElements.length; i++) {
+            const element = formElements[i];
+            if (element.name) {
+                formData[element.name] = element.value;
+            }
+        }
+        saveFormData(formId, formData);
+    });
+}
+
+// Hàm xóa dữ liệu đã lưu sau khi submit thành công
+function clearSavedFormData(formId) {
+    localStorage.removeItem(formId);
+}
+
+// Thêm khởi tạo autosave cho các form khi trang load
+document.addEventListener('DOMContentLoaded', function() {
+    setupFormAutosave('device-form');
+    setupFormAutosave('transaction-form');
+    setupFormAutosave('payment-form');
+});
+
+// Hàm lưu ảnh vào localStorage
+async function saveDeviceImage(deviceId, file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const imageData = {
+                    dataUrl: e.target.result,
+                    name: file.name,
+                    type: file.type,
+                    lastModified: file.lastModified
+                };
+                
+                // Lưu vào localStorage
+                const deviceImages = JSON.parse(localStorage.getItem('deviceImages') || '{}');
+                deviceImages[deviceId] = imageData;
+                localStorage.setItem('deviceImages', JSON.stringify(deviceImages));
+                resolve(imageData);
+            } catch (error) {
+                reject(error);
+            }
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+// Hàm lấy ảnh từ localStorage
+function getDeviceImage(deviceId) {
+    const deviceImages = JSON.parse(localStorage.getItem('deviceImages') || '{}');
+    return deviceImages[deviceId];
+}
+
+// Cập nhật hàm uploadDeviceImage
+async function uploadDeviceImage(deviceId) {
+    const fileInput = document.getElementById('upload-device-image');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        showNotification('Vui lòng chọn ảnh để tải lên', 'error');
+        return;
+    }
+
+    // Kiểm tra kích thước file (giới hạn 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        showNotification('Kích thước ảnh không được vượt quá 5MB', 'error');
+        return;
+    }
+
+    // Kiểm tra định dạng file
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+        showNotification('Chỉ chấp nhận file ảnh định dạng JPG, PNG hoặc GIF', 'error');
+        return;
+    }
+
+    try {
+        // Lưu ảnh vào localStorage
+        const imageData = await saveDeviceImage(deviceId, file);
+        
+        // Cập nhật hiển thị ảnh
+        const imageContainer = document.querySelector(`[data-device-id="${deviceId}"] .device-image-container`);
+        if (imageContainer) {
+            const img = imageContainer.querySelector('img') || document.createElement('img');
+            img.src = imageData.dataUrl;
+            img.classList.add('device-preview-image');
+            imageContainer.appendChild(img);
+        }
+
+        showNotification('Tải ảnh lên thành công', 'success');
+    } catch (error) {
+        console.error('Error uploading image:', error);
+        showNotification('Có lỗi xảy ra khi tải ảnh lên', 'error');
+    }
+}
+
+// Cập nhật hàm loadDeviceImages để load ảnh từ localStorage
+function loadDeviceImages(type, deviceId) {
+    const imageContainer = document.querySelector(`[data-device-id="${deviceId}"] .device-image-container`);
+    if (!imageContainer) return;
+
+    // Kiểm tra xem có ảnh trong localStorage không
+    const savedImage = getDeviceImage(deviceId);
+    if (savedImage) {
+        const img = document.createElement('img');
+        img.src = savedImage.dataUrl;
+        img.classList.add('device-preview-image');
+        img.onclick = () => openImageModal(savedImage.dataUrl, savedImage);
+        imageContainer.appendChild(img);
+    } else {
+        // Nếu không có ảnh đã lưu, sử dụng ảnh placeholder
+        const img = document.createElement('img');
+        img.src = `https://placehold.co/800x600?text=${type}+Image`;
+        img.classList.add('device-preview-image');
+        img.onclick = () => openImageModal(img.src, { name: `${type} Image` });
+        imageContainer.appendChild(img);
+    }
+}
+
+// Hàm xử lý tìm kiếm và lọc cảnh báo
+function handleAlertSearch() {
+    const searchInput = document.getElementById('alert-search-input');
+    const typeFilter = document.getElementById('alert-list-type-filter');
+    const severityFilter = document.getElementById('alert-list-severity-filter');
+    
+    // Lấy giá trị tìm kiếm và bộ lọc
+    const searchTerm = searchInput.value.toLowerCase();
+    const typeValue = typeFilter.value;
+    const severityValue = severityFilter.value;
+    
+    // Lọc cảnh báo
+    const filteredAlerts = alerts.filter(alert => {
+        // Tìm kiếm theo từ khóa
+        const matchSearch = alert.title.toLowerCase().includes(searchTerm) ||
+                          alert.message.toLowerCase().includes(searchTerm) ||
+                          alert.deviceName?.toLowerCase().includes(searchTerm);
+        
+        // Lọc theo loại
+        const matchType = typeValue === 'all' || alert.type === typeValue;
+        
+        // Lọc theo mức độ
+        const matchSeverity = severityValue === 'all' || alert.severity === severityValue;
+        
+        return matchSearch && matchType && matchSeverity;
+    });
+    
+    // Cập nhật hiển thị
+    const alertsList = document.getElementById('alerts-list');
+    if (!alertsList) return;
+
+    if (filteredAlerts.length === 0) {
+        alertsList.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-bell-slash"></i>
+                <p>Không tìm thấy cảnh báo nào</p>
+        </div>
+    `;
+    } else {
+        alertsList.innerHTML = filteredAlerts.map(alert => `
+            <div class="alert-item ${alert.read ? '' : 'unread'} ${alert.severity}" 
+                 onclick="viewAlertDetail('${alert.id}')">
+                <div class="alert-icon ${alert.severity}">
+                    <i class="fas ${getAlertIcon(alert.severity)}"></i>
+                </div>
+                <div class="alert-content">
+                    <div class="alert-header">
+                        <span class="alert-title">${alert.title || alert.deviceName}</span>
+                        <span class="alert-time">${formatDate(alert.timestamp || alert.date)}</span>
+                    </div>
+                    <div class="alert-message">${alert.message}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+}
+
+// Cập nhật hàm updateAlerts để thêm event listeners
+function updateAlerts() {
+    const alertsList = document.getElementById('alerts-list');
+    if (!alertsList) return;
+
+    // Thêm event listeners cho tìm kiếm và lọc
+    const searchInput = document.getElementById('alert-search-input');
+    const typeFilter = document.getElementById('alert-list-type-filter');
+    const severityFilter = document.getElementById('alert-list-severity-filter');
+
+    if (searchInput) {
+        searchInput.addEventListener('input', handleAlertSearch);
+    }
+    if (typeFilter) {
+        typeFilter.addEventListener('change', handleAlertSearch);
+    }
+    if (severityFilter) {
+        severityFilter.addEventListener('change', handleAlertSearch);
+    }
+
+    // Hiển thị danh sách cảnh báo ban đầu
+    handleAlertSearch();
+
+    // Cập nhật số lượng cảnh báo chưa đọc
+    const unreadCount = alerts.filter(a => !a.read).length;
+    const alertsBadge = document.querySelector('.alerts-badge');
+    if (alertsBadge) {
+        alertsBadge.textContent = unreadCount;
+        alertsBadge.style.display = unreadCount > 0 ? 'flex' : 'none';
+    }
+}
+

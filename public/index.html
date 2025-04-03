@@ -1,0 +1,17 @@
+<div id="content"></div>
+
+<script>
+// Fetch data từ API
+async function loadData() {
+  try {
+    const response = await fetch('/api/data');
+    const data = await response.json();
+    document.getElementById('content').innerHTML = 
+      JSON.stringify(data, null, 2);
+  } catch (err) {
+    console.error('Lỗi:', err);
+  }
+}
+
+loadData();
+</script> 
