@@ -58,8 +58,8 @@ Dự án được phát triển dưới giấy phép MIT. Xem file [LICENSE](LIC
 ## 📞 Liên Hệ
 
 Nếu bạn có bất kỳ câu hỏi hoặc góp ý nào, vui lòng liên hệ qua:
-- Email: [email]
-- Số điện thoại: [số điện thoại]
+- Email: trungkttnl8@gmail.com
+- Số điện thoại: 0962243675
 
 ## 🙏 Cảm Ơn
 
