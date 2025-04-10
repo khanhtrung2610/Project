@@ -860,4 +860,84 @@ body[data-theme="dark"] .close-btn:hover {
 /* Đảm bảo modal hiển thị đúng khi active */
 .modal.active {
     display: block !important;
+}
+
+/* CSS cho tương thích */
+.desktop-layout {
+    --font-size-base: 16px;
+    --spacing-unit: 24px;
+    --max-width: 1200px;
+}
+
+.tablet-layout {
+    --font-size-base: 15px;
+    --spacing-unit: 20px;
+    --max-width: 960px;
+}
+
+.mobile-layout {
+    --font-size-base: 14px;
+    --spacing-unit: 16px;
+    --max-width: 100%;
+}
+
+/* Dark mode */
+.dark-mode {
+    --bg-color: #1a1a1a;
+    --text-color: #ffffff;
+    --primary-color: #4a90e2;
+    --secondary-color: #2c3e50;
+    --border-color: #333333;
+}
+
+/* Thông báo lỗi tương thích */
+.compatibility-error {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: #fff3cd;
+    border: 1px solid #ffeeba;
+    color: #856404;
+    padding: 15px;
+    border-radius: 5px;
+    max-width: 300px;
+    z-index: 1000;
+    animation: slideIn 0.3s ease-out;
+}
+
+.compatibility-error h3 {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+}
+
+.compatibility-error p {
+    margin: 5px 0;
+    font-size: 14px;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .desktop-layout,
+    .tablet-layout,
+    .mobile-layout {
+        --max-width: 100%;
+        padding: 0 10px;
+    }
+    
+    .compatibility-error {
+        top: 10px;
+        right: 10px;
+        max-width: calc(100% - 20px);
+    }
 } 
