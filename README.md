@@ -45,11 +45,11 @@ git clone [repository-url]
 
 ## 👥 Thành Viên Nhóm
 
-1. [Tên thành viên 1] - Vai trò
-2. [Tên thành viên 2] - Vai trò
-3. [Tên thành viên 3] - Vai trò
-4. [Tên thành viên 4] - Vai trò
-5. [Tên thành viên 5] - Vai trò
+1. Đoàn Hoàng Khánh Trung - Backend
+2. Vũ Quang Vinh - UML
+3. Trần Ngô Anh Dũng - Tổng hợp biên bản họp
+4. Bùi Đình Tuấn - frontend
+5. Vũ Minh Hiếu - thiết kế hệ thống
 
 ## 📄 Giấy Phép
 
@@ -58,8 +58,8 @@ Dự án được phát triển dưới giấy phép MIT. Xem file [LICENSE](LIC
 ## 📞 Liên Hệ
 
 Nếu bạn có bất kỳ câu hỏi hoặc góp ý nào, vui lòng liên hệ qua:
-- Email: [email]
-- Số điện thoại: [số điện thoại]
+- Email: trungkttnl8@gmail.com
+- Số điện thoại: 0962243675
 
 ## 🙏 Cảm Ơn
 
