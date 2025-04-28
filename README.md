@@ -26,7 +26,7 @@ Hệ thống quản lý thiết bị văn phòng là một ứng dụng web giú
 
 1. Clone repository:
 ```bash
-git clone [repository-url]
+git clone [(https://github.com/khanhtrung2610/Project.git)]
 ```
 
 2. Mở file `index.html` trong trình duyệt web
