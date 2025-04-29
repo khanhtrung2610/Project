@@ -4,7 +4,7 @@ class Payment {
     // Lấy tất cả thanh toán
     static async getAllPayments() {
         try {
-            const [rows] = await db.query('SELECT * FROM payments ORDER BY date DESC');
+            const [rows] = await db.query('SELECT * FROM payments ORDER BY created_at DESC');
             return rows;
         } catch (error) {
             throw error;
@@ -25,14 +25,13 @@ class Payment {
     static async createPayment(paymentData) {
         try {
             const [result] = await db.query(
-                'INSERT INTO payments (transactionId, amount, date, type, status, method, note) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                'INSERT INTO payments (id, transaction_id, amount, payment_method, status, note) VALUES (?, ?, ?, ?, ?, ?)',
                 [
-                    paymentData.transactionId,
+                    paymentData.id,
+                    paymentData.transaction_id,
                     paymentData.amount,
-                    new Date(),
-                    paymentData.type,
-                    paymentData.status,
-                    paymentData.method,
+                    paymentData.payment_method,
+                    paymentData.status || 'pending',
                     paymentData.note
                 ]
             );
@@ -46,11 +45,12 @@ class Payment {
     static async updatePayment(id, paymentData) {
         try {
             const [result] = await db.query(
-                'UPDATE payments SET amount = ?, status = ?, method = ?, note = ? WHERE id = ?',
+                'UPDATE payments SET transaction_id = ?, amount = ?, payment_method = ?, status = ?, note = ? WHERE id = ?',
                 [
+                    paymentData.transaction_id,
                     paymentData.amount,
+                    paymentData.payment_method,
                     paymentData.status,
-                    paymentData.method,
                     paymentData.note,
                     id
                 ]

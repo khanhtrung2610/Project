@@ -5,7 +5,7 @@ class Transaction {
     // Lấy tất cả giao dịch
     static async getAllTransactions() {
         try {
-            const [rows] = await db.query('SELECT * FROM transactions ORDER BY date DESC');
+            const [rows] = await db.query('SELECT * FROM transactions ORDER BY created_at DESC');
             return rows;
         } catch (error) {
             throw error;
@@ -24,114 +24,57 @@ class Transaction {
 
     // Thêm giao dịch mới
     static async createTransaction(transactionData) {
-        const connection = await db.getConnection();
         try {
-            await connection.beginTransaction();
-
-            // Tạo giao dịch mới
-            const [result] = await connection.query(
-                'INSERT INTO transactions (type, deviceId, deviceName, quantity, price, totalAmount, date, user, status, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            const [result] = await db.query(
+                'INSERT INTO transactions (id, type, device_id, quantity, price, total_amount, user, note, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
                 [
+                    transactionData.id,
                     transactionData.type,
-                    transactionData.deviceId,
-                    transactionData.deviceName,
+                    transactionData.device_id,
                     transactionData.quantity,
                     transactionData.price,
-                    transactionData.totalAmount,
-                    new Date(),
+                    transactionData.total_amount,
                     transactionData.user,
-                    transactionData.status,
-                    transactionData.note
+                    transactionData.note,
+                    transactionData.status || 'completed'
                 ]
             );
-
-            // Cập nhật số lượng thiết bị
-            const quantityChange = transactionData.type === 'import' ? transactionData.quantity : -transactionData.quantity;
-            await Device.updateDeviceQuantity(transactionData.deviceId, quantityChange);
-
-            await connection.commit();
             return result.insertId;
         } catch (error) {
-            await connection.rollback();
             throw error;
-        } finally {
-            connection.release();
         }
     }
 
     // Cập nhật giao dịch
     static async updateTransaction(id, transactionData) {
-        const connection = await db.getConnection();
         try {
-            await connection.beginTransaction();
-
-            // Lấy thông tin giao dịch cũ
-            const [oldTransaction] = await connection.query('SELECT * FROM transactions WHERE id = ?', [id]);
-            if (!oldTransaction[0]) {
-                throw new Error('Không tìm thấy giao dịch');
-            }
-
-            // Cập nhật giao dịch
-            const [result] = await connection.query(
-                'UPDATE transactions SET type = ?, deviceId = ?, deviceName = ?, quantity = ?, price = ?, totalAmount = ?, user = ?, status = ?, note = ? WHERE id = ?',
+            const [result] = await db.query(
+                'UPDATE transactions SET type = ?, device_id = ?, quantity = ?, price = ?, total_amount = ?, user = ?, note = ?, status = ? WHERE id = ?',
                 [
                     transactionData.type,
-                    transactionData.deviceId,
-                    transactionData.deviceName,
+                    transactionData.device_id,
                     transactionData.quantity,
                     transactionData.price,
-                    transactionData.totalAmount,
+                    transactionData.total_amount,
                     transactionData.user,
-                    transactionData.status,
                     transactionData.note,
+                    transactionData.status,
                     id
                 ]
             );
-
-            // Hoàn tác số lượng thiết bị của giao dịch cũ
-            const oldQuantityChange = oldTransaction[0].type === 'import' ? -oldTransaction[0].quantity : oldTransaction[0].quantity;
-            await Device.updateDeviceQuantity(oldTransaction[0].deviceId, oldQuantityChange);
-
-            // Cập nhật số lượng thiết bị của giao dịch mới
-            const newQuantityChange = transactionData.type === 'import' ? transactionData.quantity : -transactionData.quantity;
-            await Device.updateDeviceQuantity(transactionData.deviceId, newQuantityChange);
-
-            await connection.commit();
             return result.affectedRows > 0;
         } catch (error) {
-            await connection.rollback();
             throw error;
-        } finally {
-            connection.release();
         }
     }
 
     // Xóa giao dịch
     static async deleteTransaction(id) {
-        const connection = await db.getConnection();
         try {
-            await connection.beginTransaction();
-
-            // Lấy thông tin giao dịch
-            const [transaction] = await connection.query('SELECT * FROM transactions WHERE id = ?', [id]);
-            if (!transaction[0]) {
-                throw new Error('Không tìm thấy giao dịch');
-            }
-
-            // Hoàn tác số lượng thiết bị
-            const quantityChange = transaction[0].type === 'import' ? -transaction[0].quantity : transaction[0].quantity;
-            await Device.updateDeviceQuantity(transaction[0].deviceId, quantityChange);
-
-            // Xóa giao dịch
-            const [result] = await connection.query('DELETE FROM transactions WHERE id = ?', [id]);
-
-            await connection.commit();
+            const [result] = await db.query('DELETE FROM transactions WHERE id = ?', [id]);
             return result.affectedRows > 0;
         } catch (error) {
-            await connection.rollback();
             throw error;
-        } finally {
-            connection.release();
         }
     }
 }

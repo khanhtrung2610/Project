@@ -5,7 +5,7 @@ require('dotenv').config();
 const deviceRoutes = require('./routes/device.routes');
 
 const app = express();
-const port = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 // Cấu hình CORS
 const corsOptions = {
@@ -32,6 +32,6 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-app.listen(port, () => {
-    console.log(`Server đang chạy tại http://localhost:${port}`);
+app.listen(PORT, () => {
+    console.log(`Server đang chạy tại http://localhost:${PORT}`);
 }); 

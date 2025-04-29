@@ -1,5 +1,5 @@
-// API URL Configuration
-const API_URL = 'http://localhost:3000/api';
+// API Configuration
+const API_URL = 'http://localhost:3001/api';
 
 // Khởi tạo biến toàn cục
 let currentSection = 'dashboard';
@@ -3451,47 +3451,20 @@ function handleAlertSearch() {
     // Lọc cảnh báo
     const filteredAlerts = alerts.filter(alert => {
         // Tìm kiếm theo từ khóa
-        const matchSearch = alert.title.toLowerCase().includes(searchTerm) ||
-                          alert.message.toLowerCase().includes(searchTerm) ||
-                          alert.deviceName?.toLowerCase().includes(searchTerm);
+        const matchSearch = alert.message?.toLowerCase().includes(searchTerm) ||
+                          alert.type?.toLowerCase().includes(searchTerm);
         
         // Lọc theo loại
         const matchType = typeValue === 'all' || alert.type === typeValue;
         
-        // Lọc theo mức độ
+        // Lọc theo mức độ nghiêm trọng
         const matchSeverity = severityValue === 'all' || alert.severity === severityValue;
         
         return matchSearch && matchType && matchSeverity;
     });
     
-    // Cập nhật hiển thị
-    const alertsList = document.getElementById('alerts-list');
-    if (!alertsList) return;
-
-    if (filteredAlerts.length === 0) {
-        alertsList.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-bell-slash"></i>
-                <p>Không tìm thấy cảnh báo nào</p>
-        </div>
-    `;
-    } else {
-        alertsList.innerHTML = filteredAlerts.map(alert => `
-            <div class="alert-item ${alert.read ? '' : 'unread'} ${alert.severity}" 
-                 onclick="viewAlertDetail('${alert.id}')">
-                <div class="alert-icon ${alert.severity}">
-                    <i class="fas ${getAlertIcon(alert.severity)}"></i>
-                </div>
-                <div class="alert-content">
-                    <div class="alert-header">
-                        <span class="alert-title">${alert.title || alert.deviceName}</span>
-                        <span class="alert-time">${formatDate(alert.timestamp || alert.date)}</span>
-                    </div>
-                    <div class="alert-message">${alert.message}</div>
-                </div>
-            </div>
-        `).join('');
-    }
+    // Hiển thị kết quả
+    displayAlerts(filteredAlerts);
 }
 
 // Cập nhật hàm updateAlerts để thêm event listeners
@@ -3523,6 +3496,37 @@ function updateAlerts() {
     if (alertsBadge) {
         alertsBadge.textContent = unreadCount;
         alertsBadge.style.display = unreadCount > 0 ? 'flex' : 'none';
+    }
+}
+
+// Hàm hiển thị danh sách cảnh báo
+function displayAlerts(alerts) {
+    const alertsList = document.getElementById('alerts-list');
+    if (!alertsList) return;
+
+    if (alerts.length === 0) {
+        alertsList.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-bell-slash"></i>
+                <p>Không tìm thấy cảnh báo nào</p>
+            </div>
+        `;
+    } else {
+        alertsList.innerHTML = alerts.map(alert => `
+            <div class="alert-item ${alert.status === 'active' ? 'unread' : ''} ${alert.severity}" 
+                 onclick="viewAlertDetail('${alert.id}')">
+                <div class="alert-icon ${alert.severity}">
+                    <i class="fas ${getAlertIcon(alert.severity)}"></i>
+                </div>
+                <div class="alert-content">
+                    <div class="alert-header">
+                        <span class="alert-title">${alert.type}</span>
+                        <span class="alert-time">${formatDate(alert.created_at)}</span>
+                    </div>
+                    <div class="alert-message">${alert.message}</div>
+                </div>
+            </div>
+        `).join('');
     }
 }
 

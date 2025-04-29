@@ -4,7 +4,7 @@ class Alert {
     // Lấy tất cả cảnh báo
     static async getAllAlerts() {
         try {
-            const [rows] = await db.query('SELECT * FROM alerts ORDER BY timestamp DESC');
+            const [rows] = await db.query('SELECT * FROM alerts ORDER BY created_at DESC');
             return rows;
         } catch (error) {
             throw error;
@@ -25,8 +25,8 @@ class Alert {
     static async createAlert(alertData) {
         try {
             const [result] = await db.query(
-                'INSERT INTO alerts (type, severity, title, message, deviceId, deviceName, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                [alertData.type, alertData.severity, alertData.title, alertData.message, alertData.deviceId, alertData.deviceName, new Date()]
+                'INSERT INTO alerts (id, device_id, type, message, status) VALUES (?, ?, ?, ?, ?)',
+                [alertData.id, alertData.device_id, alertData.type, alertData.message, alertData.status || 'active']
             );
             return result.insertId;
         } catch (error) {
@@ -38,8 +38,8 @@ class Alert {
     static async updateAlert(id, alertData) {
         try {
             const [result] = await db.query(
-                'UPDATE alerts SET type = ?, severity = ?, title = ?, message = ?, isRead = ? WHERE id = ?',
-                [alertData.type, alertData.severity, alertData.title, alertData.message, alertData.isRead, id]
+                'UPDATE alerts SET device_id = ?, type = ?, message = ?, status = ? WHERE id = ?',
+                [alertData.device_id, alertData.type, alertData.message, alertData.status, id]
             );
             return result.affectedRows > 0;
         } catch (error) {
