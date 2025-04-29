@@ -75,11 +75,11 @@ git clone [(https://github.com/khanhtrung2610/Project.git)]
 
 | Tên | Mã Sinh Viên | Vai Trò | Mức Độ Đóng Góp |
 |-----|-------------|---------|----------------|
-| Đoàn Hoàng Khánh Trung | 123456 | Backend Developer | 9/10 |
-| Vũ Quang Vinh | 123457 | UML Designer | 8/10 |
-| Trần Ngô Anh Dũng | 123458 | Tổng hợp biên bản họp | 8/10 |
-| Bùi Đình Tuấn | 123459 | Frontend Developer | 7/10 |
-| Vũ Minh Hiếu | 123460 | System Designer | 7/10 |
+| Đoàn Hoàng Khánh Trung | B22DCVT563 | Backend Developer | 9/10 |
+| Vũ Quang Vinh | B22DCVT587 | UML Designer | 8/10 |
+| Trần Ngô Anh Dũng | B22DCVT094 | Tổng hợp biên bản họp | 8/10 |
+| Bùi Đình Tuấn | B22DCVT478 | Frontend Developer | 7/10 |
+| Vũ Minh Hiếu | B22DCVT198 | System Designer | 7/10 |
 
 ## 📄 Giấy Phép
 
