@@ -22,6 +22,34 @@ Hệ thống quản lý thiết bị văn phòng là một ứng dụng web giú
 - Chart.js cho biểu đồ thống kê
 - Responsive Design
 
+## 🏗️ Kiến Trúc Phần Mềm
+
+Hệ thống được xây dựng theo mô hình kiến trúc 3 lớp (3-Tier Architecture) với các thành phần chính sau:
+
+### 1. Presentation Layer (Frontend)
+- Sử dụng HTML5, CSS3 và JavaScript thuần
+- Giao diện người dùng responsive, tương thích với mọi thiết bị
+- Tương tác với người dùng thông qua các form và bảng điều khiển
+- Hiển thị dữ liệu dưới dạng bảng và biểu đồ
+
+### 2. Business Logic Layer (Backend)
+- Xử lý logic nghiệp vụ chính của hệ thống
+- Quản lý các luồng dữ liệu và quy tắc nghiệp vụ
+- Xử lý các yêu cầu từ frontend và tương tác với database
+- Thực hiện các tính toán và xử lý dữ liệu
+
+### 3. Data Access Layer (Database)
+- Sử dụng MySQL làm hệ quản trị cơ sở dữ liệu
+- Lưu trữ và quản lý dữ liệu thiết bị, người dùng và các thông tin khác
+- Đảm bảo tính toàn vẹn và bảo mật dữ liệu
+- Hỗ trợ các thao tác CRUD (Create, Read, Update, Delete)
+
+### Mô Hình MVC
+Hệ thống cũng áp dụng mô hình MVC (Model-View-Controller) để tăng tính module và dễ bảo trì:
+- **Model**: Đại diện cho cấu trúc dữ liệu và logic nghiệp vụ
+- **View**: Hiển thị dữ liệu và giao diện người dùng
+- **Controller**: Xử lý các yêu cầu và điều phối luồng dữ liệu
+  
 ## 🚀 Cài Đặt và Chạy
 
 1. Clone repository:
