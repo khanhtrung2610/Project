@@ -104,3 +104,67 @@ Cảm ơn bạn đã quan tâm đến dự án của chúng tôi!
 | Trần Ngô Anh Dũng | - Tìm kiếm và tích hợp các API phù hợp để lấy dữ liệu thiết bị, thông tin chi tiết<br>- Ghi lại nội dung các cuộc họp nhóm, xác định các vấn đề phát sinh<br>- Cập nhật tiến độ, thảo luận và giải quyết các khó khăn trong quá trình phát triển | 8/10 |
 | Bùi Đình Tuấn | - Thiết kế sơ đồ Usecase, Class diagram<br>- Sơ đồ luồng dữ liệu cho hệ thống<br>- Góp ý phát triển chức năng, thiết kế giao diện các trang web<br>- Phát triển giao diện người dùng | 7/10 |
 | Vũ Minh Hiếu | - Tạo bản đặc tả các chức năng theo form chuẩn<br>- Thực hiện kiểm thử phần mềm: kiểm thử chức năng, kiểm thử hệ thống<br>- Mô hình thực hiện dự án, qua đó lựa chọn mô hình phù hợp với đề tài thực hiện | 7/10 |
+
+## 📋 Kanban Board Quá Trình Thực Hiện Dự Án
+
+### 📝 Khởi Động Dự Án (Sprint 1)
+- [x] Phân tích yêu cầu dự án
+- [x] Khảo sát hiện trạng
+- [x] Lập kế hoạch thực hiện
+- [x] Phân công nhiệm vụ
+- [x] Thiết lập môi trường phát triển
+
+### 🎯 Thiết Kế Hệ Thống (Sprint 2)
+- [x] Thiết kế kiến trúc 3 lớp
+- [x] Vẽ sơ đồ Use Case
+- [x] Thiết kế Class Diagram
+- [x] Thiết kế cơ sở dữ liệu
+- [x] Thiết kế giao diện người dùng
+- [x] Xác định các API cần thiết
+
+### 🔨 Phát Triển Backend (Sprint 3)
+- [x] Xây dựng cấu trúc database MySQL
+- [x] Phát triển Data Access Layer
+- [x] Tạo các API CRUD cơ bản
+- [x] Xây dựng Business Logic Layer
+- [x] Tích hợp xác thực và phân quyền
+- [x] Viết unit test cho backend
+
+### 💻 Phát Triển Frontend (Sprint 4)
+- [x] Xây dựng layout tổng thể
+- [x] Tạo các component cơ bản
+- [x] Phát triển trang quản lý thiết bị
+- [x] Tích hợp form thêm/sửa thiết bị
+- [x] Thêm tính năng tìm kiếm và lọc
+- [x] Tạo dashboard thống kê
+
+### 🔄 Tích Hợp & Kiểm Thử (Sprint 5)
+- [x] Tích hợp frontend với backend
+- [x] Kiểm thử chức năng (Functional Testing)
+- [x] Kiểm thử giao diện (UI Testing)
+- [x] Kiểm thử hiệu năng (Performance Testing)
+- [x] Sửa lỗi và tối ưu hóa
+- [x] Kiểm thử bảo mật
+
+### 📦 Triển Khai & Hoàn Thiện (Sprint 6)
+- [x] Triển khai lên môi trường test
+- [x] Viết tài liệu hướng dẫn sử dụng
+- [x] Đào tạo người dùng
+- [x] Thu thập phản hồi
+- [x] Sửa lỗi phát sinh
+- [x] Bàn giao sản phẩm
+
+### 🔜 Kế Hoạch Phát Triển Tiếp Theo
+- [ ] Tối ưu hóa hiệu suất database
+- [ ] Thêm tính năng export dữ liệu
+- [ ] Tích hợp thông báo email
+- [ ] Phát triển ứng dụng mobile
+- [ ] Thêm tính năng quét mã QR
+
+### 📊 Thống Kê Tiến Độ
+- Tổng số sprint: 6
+- Sprint đã hoàn thành: 6
+- Tổng số task: 35
+- Task đã hoàn thành: 30
+- Task đang thực hiện: 5
+- Tỷ lệ hoàn thành: 85.7%
