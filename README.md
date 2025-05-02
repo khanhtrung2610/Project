@@ -75,11 +75,11 @@ git clone [(https://github.com/khanhtrung2610/Project.git)]
 
 | Tên | Mã Sinh Viên | Vai Trò | Mức Độ Đóng Góp |
 |-----|-------------|---------|----------------|
-| Đoàn Hoàng Khánh Trung | B22DCVT563 | Backend Developer | 9/10 |
-| Vũ Quang Vinh | B22DCVT587 | UML Designer | 8/10 |
-| Trần Ngô Anh Dũng | B22DCVT094 | Tổng hợp biên bản họp | 8/10 |
-| Bùi Đình Tuấn | B22DCVT478 | Frontend Developer | 7/10 |
-| Vũ Minh Hiếu | B22DCVT198 | System Designer | 7/10 |
+| Đoàn Hoàng Khánh Trung | B22DCVT563 | Business Logic Layer Developer | 9/10 |
+| Vũ Quang Vinh | B22DCVT587 | Data Access Layer Developer | 8/10 |
+| Trần Ngô Anh Dũng | B22DCVT094 | Presentation Layer Developer | 8/10 |
+| Bùi Đình Tuấn | B22DCVT478 | Presentation Layer Developer | 7/10 |
+| Vũ Minh Hiếu | B22DCVT198 | System Integration Developer | 7/10 |
 
 ## 📄 Giấy Phép
 
@@ -94,3 +94,13 @@ Nếu bạn có bất kỳ câu hỏi hoặc góp ý nào, vui lòng liên hệ 
 ## 🙏 Cảm Ơn
 
 Cảm ơn bạn đã quan tâm đến dự án của chúng tôi!
+
+## 👥 Bảng đánh giá đóng góp của các thành viên:
+
+| Thành viên | Phân chia công việc | Mức độ đóng góp |
+|------------|-------------------|-----------------|
+| Đoàn Hoàng Khánh Trung | - Xác định, làm rõ nội dung, đề xuất các tính năng chính của hệ thống quản lý thiết bị văn phòng<br>- Thiết kế các yêu cầu chức năng cụ thể cho từng tính năng: quản lý thiết bị, theo dõi tồn kho, cảnh báo<br>- Thực hiện triển khai các phần: giao diện trang chủ, trang chi tiết thiết bị, trang tìm kiếm<br>- Chịu trách nhiệm code các tính năng chính: hiển thị danh sách thiết bị, tìm kiếm thiết bị | 9/10 |
+| Vũ Quang Vinh | - Tạo bản đặc tả các chức năng theo form chuẩn<br>- Đảm bảo các nội dung đã được làm rõ trước đó<br>- Tham gia nghiên cứu phát triển chức năng tìm kiếm thiết bị<br>- Phát triển các chức năng truy xuất và quản lý dữ liệu | 8/10 |
+| Trần Ngô Anh Dũng | - Tìm kiếm và tích hợp các API phù hợp để lấy dữ liệu thiết bị, thông tin chi tiết<br>- Ghi lại nội dung các cuộc họp nhóm, xác định các vấn đề phát sinh<br>- Cập nhật tiến độ, thảo luận và giải quyết các khó khăn trong quá trình phát triển | 8/10 |
+| Bùi Đình Tuấn | - Thiết kế sơ đồ Usecase, Class diagram<br>- Sơ đồ luồng dữ liệu cho hệ thống<br>- Góp ý phát triển chức năng, thiết kế giao diện các trang web<br>- Phát triển giao diện người dùng | 7/10 |
+| Vũ Minh Hiếu | - Tạo bản đặc tả các chức năng theo form chuẩn<br>- Thực hiện kiểm thử phần mềm: kiểm thử chức năng, kiểm thử hệ thống<br>- Mô hình thực hiện dự án, qua đó lựa chọn mô hình phù hợp với đề tài thực hiện | 7/10 |
